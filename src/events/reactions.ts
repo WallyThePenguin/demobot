@@ -8,13 +8,15 @@ import {
 } from "../../deps.ts";
 import { bot } from "../../cache.ts";
 import { processReactionCollectors } from "../utils/collectors.ts";
-import { messages } from "./messageCreate.ts";
+import { messages } from "./message_create.ts";
 import { db } from "../database/database.ts";
 // deno-lint-ignore require-await
 bot.eventHandlers.reactionAdd = async function (data, message) {
-  pollsReaction(message, data);
-  rulesReaction(message, data);
-  processReactionCollectors(message, emoji, userID);
+  if (message) {
+    pollsReaction(message, data);
+    rulesReaction(message, data);
+    processReactionCollectors(message, data.emoji, snowflakeToBigint(data.userId));
+  }
 };
 
 async function pollsReaction(message: DiscordenoMessage, data: MessageReactionAdd) {
@@ -42,16 +44,22 @@ async function pollsReaction(message: DiscordenoMessage, data: MessageReactionAd
   if (!dbvotes) return console.log("DB Failed to Create before counting.");
   switch (data.emoji.name) {
     case num[1]:
-      const candidate1votes = dbvotes.candidate1.votes + 1;
-      db.votes.update(`1`, { candidate1: { votes: candidate1votes } });
+      {
+        const candidate1votes = dbvotes.candidate1.votes + 1;
+        db.votes.update(`1`, { candidate1: { votes: candidate1votes } });
+      }
       break;
     case num[2]:
-      const candidate2votes = dbvotes.candidate2.votes + 1;
-      db.votes.update(`1`, { candidate2: { votes: candidate2votes } });
+      {
+        const candidate2votes = dbvotes.candidate2.votes + 1;
+        db.votes.update(`1`, { candidate2: { votes: candidate2votes } });
+      }
       break;
     case num[3]:
-      const candidate3votes = dbvotes.candidate3.votes + 1;
-      db.votes.update(`1`, { candidate3: { votes: candidate3votes } });
+      {
+        const candidate3votes = dbvotes.candidate3.votes + 1;
+        db.votes.update(`1`, { candidate3: { votes: candidate3votes } });
+      }
       break;
   }
 }
