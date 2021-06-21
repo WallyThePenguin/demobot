@@ -1,15 +1,23 @@
-import { cache, addRole, MessageReactionUncachedPayload, ReactionPayload } from "../../deps.ts";
+import {
+  cache,
+  addRole,
+  MessageReactionAdd,
+  DiscordenoMessage,
+  bigintToSnowflake,
+  snowflakeToBigint,
+} from "../../deps.ts";
 import { bot } from "../../cache.ts";
 import { processReactionCollectors } from "../utils/collectors.ts";
 import { messages } from "./messageCreate.ts";
 import { db } from "../database/database.ts";
-bot.eventHandlers.reactionAdd = async function (message, emoji, userID) {
-  pollsReaction(message, emoji, userID);
-  rulesReaction(message, emoji, userID);
+// deno-lint-ignore require-await
+bot.eventHandlers.reactionAdd = async function (data, message) {
+  pollsReaction(message, data);
+  rulesReaction(message, data);
   processReactionCollectors(message, emoji, userID);
 };
 
-async function pollsReaction(message: MessageReactionUncachedPayload, emoji: ReactionPayload, userID: string) {
+async function pollsReaction(message: DiscordenoMessage, data: MessageReactionAdd) {
   const num = [
     "\u0030\u20E3",
     "\u0031\u20E3",
@@ -23,16 +31,16 @@ async function pollsReaction(message: MessageReactionUncachedPayload, emoji: Rea
     "\u0039\u20E3",
   ];
   //See If the Message Being Reacted to is cached,
-  const messageids = messages.get(message.id)?.id;
+  const messageids = messages.get(bigintToSnowflake(message.id))?.id;
   //If It isn't, reject it.
   if (!messageids) return;
   //Check if the user is a bot.
-  const user = cache.members.get(userID);
+  const user = cache.members.get(snowflakeToBigint(data.userId));
   //If it is a bot, reject the vote.
   if (user?.bot) return;
   const dbvotes = await db.votes.get(`1`);
   if (!dbvotes) return console.log("DB Failed to Create before counting.");
-  switch (emoji.name) {
+  switch (data.emoji.name) {
     case num[1]:
       const candidate1votes = dbvotes.candidate1.votes + 1;
       db.votes.update(`1`, { candidate1: { votes: candidate1votes } });
@@ -48,16 +56,18 @@ async function pollsReaction(message: MessageReactionUncachedPayload, emoji: Rea
   }
 }
 
-async function rulesReaction(message: MessageReactionUncachedPayload, _emoji: ReactionPayload, userID: string) {
+async function rulesReaction(message: DiscordenoMessage, data: MessageReactionAdd) {
   //get Messages Guild ID.
-  const guildid = message.guildID;
-  if (!guildid) return;
+  const gid = message.guildId;
+  const guildflake = bigintToSnowflake(gid);
+  const guildint = gid;
+  if (!gid) return;
   //Check if the user is a bot.
-  const user = cache.guilds.get(guildid)?.members.get(userID);
+  const user = cache.guilds.get(guildint)?.members.get(snowflakeToBigint(data.userId));
   if (user?.bot) return;
-  const idm = await db.guilds.get(guildid);
-  const guild = cache.guilds.get(guildid);
+  const idm = await db.guilds.get(guildflake);
+  const guild = cache.guilds.get(guildint);
   const role = guild?.roles.find((roles) => roles.name === "Verified")?.id;
   if (!role) return;
-  if (message.id === idm?.rulesid) return addRole(guildid, userID, role); //Here I need to give a Verified Role.
+  if (bigintToSnowflake(message.id) === idm?.rulesid) return addRole(guildint, snowflakeToBigint(data.userId), role); //Here I need to give a Verified Role.
 }

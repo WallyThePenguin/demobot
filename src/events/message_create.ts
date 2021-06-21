@@ -5,12 +5,33 @@ import {
   DiscordChannelTypes,
   hasChannelPermissions,
   hasGuildPermissions,
+  DiscordenoMessage,
+  bigintToSnowflake,
 } from "../../deps.ts";
 import { bot } from "../../cache.ts";
 import { fetchMember } from "../utils/helpers.ts";
-
+export const messages = new Map<string, DiscordenoMessage>();
+import { db } from "../database/database.ts";
 // deno-lint-ignore require-await
 bot.eventHandlers.messageCreate = async function (message) {
+  messageCreate(message);
+  messagecacher(message);
+};
+async function messagecacher(message: DiscordenoMessage) {
+  const guildid = message.guildId;
+  //Check if the guild is in db,
+  const guildcheck = db.guilds.has(bigintToSnowflake(guildid));
+  //If not just end the whole code.
+  if (!guildcheck) return;
+  //If true, check the db for pollsid then and cache it.
+  const guilddb = await db.guilds.get(bigintToSnowflake(guildid));
+  if (bigintToSnowflake(message.channelId) === guilddb?.pollsid) {
+    messages.set(bigintToSnowflake(message.id), message);
+  } else return;
+  bot.memberLastActive.set(message.authorId, message.timestamp);
+}
+// deno-lint-ignore require-await
+async function messageCreate(message: DiscordenoMessage) {
   bot.memberLastActive.set(message.authorId, message.timestamp);
 
   bot.monitors.forEach(async (monitor) => {
@@ -64,4 +85,4 @@ bot.eventHandlers.messageCreate = async function (message) {
 
     return monitor.execute(message);
   });
-};
+}
