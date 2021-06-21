@@ -32,7 +32,8 @@ bot.tasks.set(`polls`, {
     friday.setDate(today.getDate() + ((7 + 5 - today.getDay()) % 7));
     //IF it's friday, around 5:00 then return guilds. // 17
     //(friday.getDay() === 5 && today.getHours() === 17 && today.getMinutes() <= 10)
-    if (1 === 1) {
+    const poo = 1;
+    if (poo === 1) {
       console.log("TASK LAUNCHED------------------------------");
       const userbase = await db.users.getAll(true);
       const userdb = userbase.sort((a, b) => b.messages - a.messages);
