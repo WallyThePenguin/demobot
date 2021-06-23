@@ -5,6 +5,7 @@ import { log } from "./logger.ts";
 
 export function registerTasks() {
   for (const task of bot.tasks.values()) {
+    if (task.disabled === true) return;
     bot.runningTasks.initialTimeouts.push(
       setTimeout(async () => {
         log.info(`[TASK: ${bgYellow(black(task.name))}] Started.`);
