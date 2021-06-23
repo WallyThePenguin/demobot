@@ -1,5 +1,4 @@
-import { sendMessage, cache, bigintToSnowflake } from "../../../deps.ts";
-import { bot } from "../../../cache.ts";
+import { cache } from "../../../deps.ts";
 import { PermissionLevels } from "../.././types/commands.ts";
 import { createCommand } from "../../utils/helpers.ts";
 createCommand({
