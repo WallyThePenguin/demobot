@@ -15,6 +15,6 @@ createCommand({
   description: "Lists the servers that your bot is in with server id.",
   execute: function (message) {
     const GuildArray = cache.guilds.map((g) => `${g.name}, ${g.memberCount} Members, ${g.id}`);
-    message.reply(GuildArray.join("\n"));
+    message.send(GuildArray.join("\n"));
   },
 });
