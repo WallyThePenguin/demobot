@@ -31,18 +31,21 @@ async function pollsUnreact(message: DiscordenoMessage, data: MessageReactionRem
     case num[1]:
       {
         const candidate1votes = dbvotes.candidate1.votes;
+        //@ts-ignore candidate1
         db.votes.update(`1`, { candidate1: { votes: candidate1votes - 1 } });
       }
       break;
     case num[2]:
       {
         const candidate2votes = dbvotes.candidate2.votes;
+        //@ts-ignore candidate2
         db.votes.update(`1`, { candidate2: { votes: candidate2votes - 1 } });
       }
       break;
     case num[3]:
       {
         const candidate3votes = dbvotes.candidate3.votes;
+        //@ts-ignore candidate3
         db.votes.update(`1`, { candidate3: { votes: candidate3votes - 1 } });
       }
       break;
