@@ -20,7 +20,8 @@ bot.commands.set("newbotstatus", {
       defaultValue: "Being Democratic...",
     },
   ],
-  execute: function (message, args) {
+  //deno-lint-ignore require-await
+  execute: async function (message, args) {
     const nsv = args.Newstatus;
     editBotStatus({
       status: "dnd",

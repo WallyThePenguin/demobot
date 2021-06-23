@@ -34,7 +34,7 @@ bot.commands.set("setup", {
   execute: async function (message, args) {
     //Creating Guild/Server From Template ID, Uses ARGS only for Servername.
     const guild = await createGuildFromTemplate("RxHNYkBxpqbb", { name: args.ServerName });
-    if (!guild) return sendMessage(message.channelId, "Attempt to create server has failed! (in too many servers)");
+    if (!guild) return sendMessage(message.channelId, "Attempt to create server has failed!");
 
     //Getting the System_Channel_ID to Create An  Invite later on.
     const chanid = guild.systemChannelId;

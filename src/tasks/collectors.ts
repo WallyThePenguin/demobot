@@ -6,6 +6,7 @@ bot.tasks.set(`collectors`, {
   name: `collectors`,
   // Runs this function once a minute
   interval: Milliseconds.MINUTE,
+  log: false,
   execute: function () {
     const now = Date.now();
 

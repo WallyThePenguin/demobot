@@ -12,7 +12,7 @@ bot.eventHandlers.ready = async function () {
     status: "dnd",
     activities: [
       {
-        name: "Discordeno Best Lib",
+        name: "Valid Is Daddy.",
         type: DiscordActivityTypes.Game,
         createdAt: Date.now(),
       },

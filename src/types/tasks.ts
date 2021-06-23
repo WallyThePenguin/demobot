@@ -5,6 +5,8 @@ export interface Task {
   interval: number;
   /** Choose whether to disable the task by default or not. */
   disabled?: boolean;
+  /** Choose whether you want to be notified when this Task is triggered. */
+  log?: boolean;
   /** The main code that will be run when this monitor is triggered. */
   execute: () => unknown;
 }
