@@ -9,7 +9,8 @@ import { messages } from "../events/message_create.ts";
 bot.tasks.set(`polls`, {
   name: `polls`,
   // Runs this function once every 6 minutes. (1 minute for testing)
-  interval: Milliseconds.MINUTE * 1,
+  interval: Milliseconds.MINUTE * 6,
+  disabled: true,
   execute: async function () {
     // Only run when the bot is fully ready. In case guilds are still loading dont want to send wrong stats.
     if (!cache.isReady) return;
