@@ -1,7 +1,7 @@
-import { sendMessage, deleteGuild } from "../../../deps.ts";
-import { bot } from "../../../cache.ts";
+import { sendMessage, deleteGuild, snowflakeToBigint } from "../../../deps.ts";
+import { createCommand } from "../../utils/helpers.ts";
 import { PermissionLevels } from "../.././types/commands.ts";
-bot.commands.set("serverdelete", {
+createCommand({
   name: "serverdelete",
   aliases: ["sdel"],
   dmOnly: false,
@@ -22,7 +22,7 @@ bot.commands.set("serverdelete", {
   execute: async function (message, args) {
     const servid = args.serverid;
     try {
-      await deleteGuild(servid);
+      await deleteGuild(snowflakeToBigint(servid));
     } catch (_error) {
       return sendMessage(message.channelId, "Server ID doesn't exist/ Invalid Server ID");
     }

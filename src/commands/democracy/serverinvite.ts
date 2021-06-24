@@ -1,7 +1,7 @@
-import { sendMessage, createInvite, cache } from "../../../deps.ts";
-import { bot } from "../../../cache.ts";
+import { sendMessage, createInvite, cache, snowflakeToBigint } from "../../../deps.ts";
+import { createCommand } from "../../utils/helpers.ts";
 import { PermissionLevels } from "../.././types/commands.ts";
-bot.commands.set("serverinvite", {
+createCommand({
   name: "serverinvite",
   aliases: ["sinvite"],
   dmOnly: false,
@@ -21,7 +21,7 @@ bot.commands.set("serverinvite", {
   ],
   execute: async function (message, args) {
     const guildid = args.guildid;
-    const getguild = cache.guilds.get(guildid);
+    const getguild = cache.guilds.get(snowflakeToBigint(guildid));
     if (!getguild) return sendMessage(message.channelId, "This guild ID isn't valid!");
     const chanid = getguild?.systemChannelId;
     if (!chanid) return sendMessage(message.channelId, "Unable to get the systems channelID from server.");

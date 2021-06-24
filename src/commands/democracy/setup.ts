@@ -7,13 +7,12 @@ import {
   createInvite,
   bigintToSnowflake,
 } from "../../../deps.ts";
-import { bot } from "../../../cache.ts";
 import { PermissionLevels } from "../.././types/commands.ts";
 import { Embed } from "../../utils/Embed.ts";
-import { sendEmbed } from "../../utils/helpers.ts";
+import { sendEmbed, createCommand } from "../../utils/helpers.ts";
 import { setupRules, imagerules, vcrules, pollinghelp } from "../../../conflist.ts";
 import { db } from "../../database/database.ts";
-bot.commands.set("setup", {
+createCommand({
   name: "setup",
   dmOnly: false,
   guildOnly: false,
@@ -27,7 +26,7 @@ bot.commands.set("setup", {
   arguments: [
     {
       name: "ServerName",
-      type: "...string",
+      type: "...strings",
       defaultValue: "New Server",
     },
   ],

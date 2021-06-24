@@ -1,7 +1,7 @@
 import { sendMessage, editBotStatus, DiscordActivityTypes } from "../../../deps.ts";
-import { bot } from "../../../cache.ts";
+import { createCommand } from "../../utils/helpers.ts";
 import { PermissionLevels } from "../.././types/commands.ts";
-bot.commands.set("newbotstatus", {
+createCommand({
   name: "newbotstatus",
   aliases: ["nbs"],
   dmOnly: false,
@@ -16,7 +16,7 @@ bot.commands.set("newbotstatus", {
   arguments: [
     {
       name: "Newstatus",
-      type: "...string",
+      type: "...strings",
       defaultValue: "Being Democratic...",
     },
   ],

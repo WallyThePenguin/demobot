@@ -1,9 +1,8 @@
-import { sendMessage, cache } from "../../../deps.ts";
-import { bot } from "../../../cache.ts";
+import { sendMessage, cache, snowflakeToBigint } from "../../../deps.ts";
 import { PermissionLevels } from "../.././types/commands.ts";
 import { Embed } from "../../utils/Embed.ts";
-
-bot.commands.set("serveridentify", {
+import { createCommand } from "../../utils/helpers.ts";
+createCommand({
   name: "serveridentify",
   aliases: ["si"],
   dmOnly: false,
@@ -23,7 +22,7 @@ bot.commands.set("serveridentify", {
   ],
   execute: function (message, args) {
     const guild = args.ServerID;
-    const guildbase = cache.guilds.get(guild);
+    const guildbase = cache.guilds.get(snowflakeToBigint(guild));
     const info = {
       name: guildbase?.name,
       owner: guildbase?.ownerId,
