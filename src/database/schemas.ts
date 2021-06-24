@@ -3,7 +3,9 @@ export interface ClientSchema {
   id: string;
 }
 interface candidate {
-  id: string;
+  //**Candidate UserId */
+  id?: string;
+  //**Number of Votes they have gotten. */
   votes: number;
 }
 export interface VoteSchema {
@@ -32,4 +34,26 @@ export interface UserSchema {
   id: string;
   /** Amount of messages the person has sent during the week. */
   messages: number;
+}
+interface stats {
+  Health: number;
+  Attack: number;
+  Speed: number;
+  CritChance: number;
+  CritDmgMultiplier: number;
+  Defense: number;
+}
+interface money {
+  name: string;
+  moneycount: number;
+}
+export interface EconUserSchema {
+  /**UserId */
+  id: string;
+  //**Money */
+  money: money;
+  //**StatSchema */
+  stats: stats;
+  //**Adventure count you went on */
+  Adventurecount: number;
 }
