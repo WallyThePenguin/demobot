@@ -36,11 +36,23 @@ export interface UserSchema {
   messages: number;
 }
 interface stats {
+  //**Amount of health you have */
   Health: number;
-  Attack: number;
+  //**Amount of Attack Dmg you have */
+  Basicattack?: number;
+  //**Amount of Ability Power you have */
+  Abilitypower?: number;
+  //**Amount of Speed, if you get to move first or not */
   Speed: number;
+  //**Amount Of Luck you have (For Drops) */
+  Luck?: number;
+  //**For Strategists */
+  Chance?: number;
+  //**CritChance, basically chanceroll for extra dmg. */
   CritChance: number;
+  //**How big of a multiplier you get when you land crit. */
   CritDmgMultiplier: number;
+  //**Defense, Basically Going to subtract from attack dmg when getting hit. */
   Defense: number;
 }
 interface money {
@@ -56,4 +68,15 @@ export interface EconUserSchema {
   stats: stats;
   //**Adventure count you went on */
   Adventurecount: number;
+}
+
+export interface adventure {
+  //**Endless */
+  EndlessPVE: boolean;
+  //**Number 1-10 for now, difficulty of the fights */
+  Difficulty: number;
+  //**How many Enemies you will encounter, based on Difficulty. */
+  EnemyCount?: number;
+  //**Enemy stats, based on difficulty. */
+  Enemies: stats;
 }
