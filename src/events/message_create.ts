@@ -11,7 +11,8 @@ import {
 import { bot } from "../../cache.ts";
 import { fetchMember } from "../utils/helpers.ts";
 export const messages = new Map<string, DiscordenoMessage>();
-import { db } from "../database/database.ts";
+import { runQuery } from "../database/client.ts";
+import { GuildSchema } from "../database/schemas.ts";
 // deno-lint-ignore require-await
 bot.eventHandlers.messageCreate = async function (message) {
   messageCreate(message);
@@ -20,12 +21,11 @@ bot.eventHandlers.messageCreate = async function (message) {
 async function messagecacher(message: DiscordenoMessage) {
   const guildid = message.guildId;
   //Check if the guild is in db,
-  const guildcheck = db.guilds.has(bigintToSnowflake(guildid));
+  const guildInfo = await runQuery<GuildSchema>(`select * from "GuildSchema" where "guildId" = $1`, [guildid]);
   //If not just end the whole code.
-  if (!guildcheck) return;
+  if (guildInfo.length === 0) return;
   //If true, check the db for pollsid then and cache it.
-  const guilddb = await db.guilds.get(bigintToSnowflake(guildid));
-  if (bigintToSnowflake(message.channelId) === guilddb?.pollsid) {
+  if (bigintToSnowflake(message.channelId) === guildInfo[0]?.pollsid) {
     messages.set(bigintToSnowflake(message.id), message);
   } else return;
   bot.memberLastActive.set(message.authorId, message.timestamp);
