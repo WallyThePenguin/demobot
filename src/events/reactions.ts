@@ -10,6 +10,8 @@ import { bot } from "../../cache.ts";
 import { processReactionCollectors } from "../utils/collectors.ts";
 import { messages } from "./message_create.ts";
 import { db } from "../database/database.ts";
+import { runQuery } from "../database/client.ts";
+import { VoteSchema } from "../database/schemas.ts";
 // deno-lint-ignore require-await
 bot.eventHandlers.reactionAdd = async function (data, message) {
   if (message) {
@@ -40,7 +42,7 @@ async function pollsReaction(message: DiscordenoMessage, data: MessageReactionAd
   const user = cache.members.get(snowflakeToBigint(data.userId));
   //If it is a bot, reject the vote.
   if (user?.bot) return;
-  const dbvotes = await db.votes.get(`1`);
+  const dbvotes = await runQuery<VoteSchema>();
   if (!dbvotes) return console.log("DB Failed to Create before counting.");
   switch (data.emoji.name) {
     case num[1]:

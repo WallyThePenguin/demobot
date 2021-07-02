@@ -47,11 +47,12 @@ async function createTables() {
           CONSTRAINT "UserSchema_pkey" PRIMARY KEY (id)
       )`,
     `CREATE TABLE public."VoteSchema"
-      (
-          id bigint NOT NULL,
-          vote integer NOT NULL,
-          CONSTRAINT "VoteSchema_pkey" PRIMARY KEY (id)
-      )`,
+    (
+        id bigint NOT NULL,
+        vote integer NOT NULL,
+        "numID" integer NOT NULL,
+        CONSTRAINT "VoteSchema_pkey" PRIMARY KEY ("numID", id)
+    )`,
   ];
 
   for (const query of queries) {

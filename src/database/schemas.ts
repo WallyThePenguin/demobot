@@ -3,6 +3,8 @@ export interface VoteSchema extends Record<string, unknown> {
   id: bigint;
   //**Number of Votes */
   vote: number;
+  //**Unique Candidate ID */
+  numID: number;
 }
 
 export interface GuildSchema extends Record<string, unknown> {
