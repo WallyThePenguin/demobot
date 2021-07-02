@@ -6,7 +6,7 @@ import { configs } from "./../../configs.ts";
 /** Create needed tables */
 async function createTables() {
   const queries = [
-    `CREATE TABLE public."Arena"
+    `CREATE TABLE IF NOT EXISTS public."Arena"
   (
       id bigint NOT NULL,
       endlesspve boolean NOT NULL,
@@ -14,7 +14,7 @@ async function createTables() {
       enemycount integer,
       CONSTRAINT "Arena_pkey" PRIMARY KEY (id)
   )`,
-    `CREATE TABLE public."GameUserSchema"
+    `CREATE TABLE IF NOT EXISTS public."GameUserSchema"
       (
           id bigint NOT NULL,
           money integer NOT NULL,
@@ -30,7 +30,7 @@ async function createTables() {
           advcount integer NOT NULL,
           CONSTRAINT "GameUserSchema_pkey" PRIMARY KEY (id)
       )`,
-    `CREATE TABLE public."GuildSchema"
+    `CREATE TABLE IF NOT EXISTS public."GuildSchema"
       (
           "guildId" bigint NOT NULL,
           prefix text COLLATE pg_catalog."default",
@@ -40,13 +40,13 @@ async function createTables() {
           leaderid text COLLATE pg_catalog."default",
           CONSTRAINT "GuildSchema_pkey" PRIMARY KEY ("guildId")
       )`,
-    `CREATE TABLE public."UserSchema"
+    `CREATE TABLE IF NOT EXISTS public."UserSchema"
       (
           id bigint NOT NULL,
           messages integer NOT NULL,
           CONSTRAINT "UserSchema_pkey" PRIMARY KEY (id)
       )`,
-    `CREATE TABLE public."VoteSchema"
+    `CREATE TABLE IF NOT EXISTS public."VoteSchema"
     (
         id bigint NOT NULL,
         vote integer NOT NULL,
@@ -63,7 +63,7 @@ async function createTables() {
 }
 async function loadCache() {
   // Guilds
-  const guilds = await runQuery<schemas.GuildSchema>("select * from guilds");
+  const guilds = await runQuery<schemas.GuildSchema>(`SELECT * FROM "GuildSchema"`);
   guilds.forEach((guild) => {
     if (guild.language) bot.guildLanguages.set(guild.guildId, guild.language);
     if (guild.prefix && guild.prefix !== configs.prefix) bot.guildPrefixes.set(guild.guildId, guild.prefix);

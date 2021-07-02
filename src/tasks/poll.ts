@@ -1,5 +1,13 @@
 import { Milliseconds } from "../utils/constants/time.ts";
-import { cache, sendMessage, addReactions, delay, getMember, snowflakeToBigint } from "../../deps.ts";
+import {
+  cache,
+  sendMessage,
+  addReactions,
+  delay,
+  getMember,
+  snowflakeToBigint,
+  bigintToSnowflake,
+} from "../../deps.ts";
 import { bot } from "../../cache.ts";
 import { Embed } from "../utils/Embed.ts";
 import { runQuery } from "../database/client.ts";
@@ -28,7 +36,7 @@ bot.tasks.set(`polls`, {
       "\u0039\u20E3",
     ];
     //Get all guilds from the database.
-    const allguilds = await runQuery<GuildSchema>(`SELECT * FROM "iikGuildSchema"`);
+    const allguilds = await runQuery<GuildSchema>(`SELECT * FROM "GuildSchema"`);
     const today = new Date();
     const friday = new Date(today.getTime());
     friday.setDate(today.getDate() + ((7 + 5 - today.getDay()) % 7));
@@ -41,10 +49,11 @@ bot.tasks.set(`polls`, {
       const userdb = await runQuery<UserSchema>(`SELECT * FROM "UserSchema" ORDER BY messages DESC`);
       //Create a Vote DB that has votes with corresponding candidates.
       await runQuery<VoteSchema>(
-        `INSERT INTO votes (id, vote,"numID") VALUES 
-        (userdb[0].id, 0, 1), 
-        (userdb[1].id, 0, 2), 
-        (userdb[2].id, 0, 3)`
+        `INSERT INTO "VoteSchema" (id, vote,"numID") VALUES 
+        ( $1, 0, 1), 
+        ( $2, 0, 2), 
+        ( $3, 0, 3)`,
+        [userdb[0].id, userdb[1].id, userdb[2].id]
       );
       const embed = new Embed()
         .addField("Candidate 1", `<@${userdb[0].id}> :one: With ${userdb[0].messages} Messages!`)
@@ -92,14 +101,20 @@ bot.tasks.set(`polls`, {
           const test = await getMember(guild.guildId, winner[0].id);
           if (!test) return;
           test.addRole(guild.guildId, role);
-          db.guilds.update(guild.id, { leaderid: winner[0].id });
+          runQuery<GuildSchema>(`UPDATE "GuildSchema" SET leaderid = $1 WHERE "guildId" = $2`, [
+            bigintToSnowflake(winner[0].id),
+            guild.guildId,
+          ]);
           return;
         }
         const addrole = leader?.addRole(guild.guildId, role);
         if (!addrole) {
           console.log(`${winner[1].id} Not in server ${g?.id}`);
         }
-        db.guilds.update(guild.id, { leaderid: winner[0].id });
+        runQuery<GuildSchema>(`UPDATE "GuildSchema" SET leaderid = $1 WHERE "guildId" = $2`, [
+          bigintToSnowflake(winner[0].id),
+          guild.guildId,
+        ]);
         continue;
       }
       //Announce the new leader to all servers.

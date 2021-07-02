@@ -67,7 +67,7 @@ createCommand({
 
     // Add the message.id to rulesid and polls channelid in guildschema.
     await runQuery(
-      `INSERT INTO GuildSchema(guildId, rulesid, pollsid)
+      `INSERT INTO "GuildSchema" ("guildId", rulesid, pollsid)
     VALUES($1, $2, $3)`,
       [fullGuild.id, bigintToSnowflake(rules.id), bigintToSnowflake(polls.channelId)]
     );

@@ -3,7 +3,8 @@ import { PermissionLevels } from "../types/commands.ts";
 import { createCommand, createSubcommand } from "../utils/helpers.ts";
 import { parsePrefix } from "../monitors/command_handler.ts";
 import { Embed } from "../utils/Embed.ts";
-import { db } from "../database/database.ts";
+import { runQuery } from "../database/client.ts";
+import { GuildSchema } from "../database/schemas.ts";
 
 // This command will only execute if there was no valid sub command: !prefix
 createCommand({
@@ -48,7 +49,7 @@ createSubcommand("prefix", {
 
     const oldPrefix = parsePrefix(message.guildId);
     bot.guildPrefixes.set(message.guildId, args.prefix);
-    db.guilds.update(message.guildId.toString(), { prefix: args.prefix });
+    runQuery<GuildSchema>(`UPDATE "GuildSchema" SET "prefix" = $1 WHERE "guildId"=$2`, [args.prefix, message.guildId]);
 
     const embed = new Embed()
       .setTitle("Success, prefix was changed")

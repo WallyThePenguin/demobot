@@ -9,9 +9,8 @@ import {
 import { bot } from "../../cache.ts";
 import { processReactionCollectors } from "../utils/collectors.ts";
 import { messages } from "./message_create.ts";
-import { db } from "../database/database.ts";
 import { runQuery } from "../database/client.ts";
-import { VoteSchema } from "../database/schemas.ts";
+import { VoteSchema, GuildSchema } from "../database/schemas.ts";
 // deno-lint-ignore require-await
 bot.eventHandlers.reactionAdd = async function (data, message) {
   if (message) {
@@ -42,45 +41,43 @@ async function pollsReaction(message: DiscordenoMessage, data: MessageReactionAd
   const user = cache.members.get(snowflakeToBigint(data.userId));
   //If it is a bot, reject the vote.
   if (user?.bot) return;
-  const dbvotes = await runQuery<VoteSchema>();
-  if (!dbvotes) return console.log("DB Failed to Create before counting.");
+  const dbvotes = await runQuery<VoteSchema>(`SELECT * FROM "VoteSchema"`);
+  if (dbvotes.length === 0) return console.log("DB Failed to Create before counting.");
   switch (data.emoji.name) {
     case num[1]:
       {
-        const candidate1votes = dbvotes.candidate1.votes + 1;
-        //@ts-ignore candidate1
-        db.votes.update(`1`, { candidate1: { votes: candidate1votes } });
+        runQuery(`UPDATE "VoteSchema" SET "vote" = "vote" + 1 WHERE "numID"=$1`, [1]);
       }
       break;
     case num[2]:
       {
-        const candidate2votes = dbvotes.candidate2.votes + 1;
-        //@ts-ignore candidate2
-        db.votes.update(`1`, { candidate2: { votes: candidate2votes } });
+        runQuery(`UPDATE "VoteSchema" SET "vote" = "vote" + 1 WHERE "numID"=$1`, [2]);
       }
       break;
     case num[3]:
       {
-        const candidate3votes = dbvotes.candidate3.votes + 1;
-        //@ts-ignore candidate3
-        db.votes.update(`1`, { candidate3: { votes: candidate3votes } });
+        runQuery(`UPDATE "VoteSchema" SET "vote" = "vote" + 1 WHERE "numID"=$1`, [3]);
       }
       break;
   }
 }
 
 async function rulesReaction(message: DiscordenoMessage, data: MessageReactionAdd) {
+  console.log(`Triggered ReactionAdd: Rules`);
   //get Messages Guild ID.
   const gid = message.guildId;
-  const guildflake = bigintToSnowflake(gid);
   const guildint = gid;
   if (!gid) return;
   //Check if the user is a bot.
   const user = cache.guilds.get(guildint)?.members.get(snowflakeToBigint(data.userId));
   if (user?.bot) return;
-  const idm = await db.guilds.get(guildflake);
+  //Get The guild.
+  const [idm] = await runQuery<GuildSchema>(`SELECT "guildId" FROM "GuildSchema" WHERE "guildId"=$1 `, [
+    message.guildId,
+  ]);
   const guild = cache.guilds.get(guildint);
   const role = guild?.roles.find((roles) => roles.name === "Verified")?.id;
   if (!role) return;
+  //Check if rulesid is the same as message that was reacted to.
   if (bigintToSnowflake(message.id) === idm?.rulesid) return addRole(guildint, snowflakeToBigint(data.userId), role); //Here I need to give a Verified Role.
 }
