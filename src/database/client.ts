@@ -24,4 +24,9 @@ export async function runQuery<T extends Record<string, unknown>>(
   client.release();
   return dbResult.rows;
 }
+export async function gamedatacheck(user: bigint): Promise<boolean> {
+  const check = await runQuery(`SELECT 1 FROM "GameUserSchema" WHERE id = $1 LIMIT 1`, [user]);
+  if (check.length === 0) return false;
+  else return true;
+}
 await init();
