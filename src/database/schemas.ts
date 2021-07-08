@@ -51,8 +51,8 @@ export interface GameUserSchema extends Record<string, unknown> {
   critdmgmultiplier?: number;
   //**Defense, Basically Going to subtract from attack dmg when getting hit. */
   defense?: number;
-  //**Adventure count you went on */
-  advcount: number;
+  //**Whether or not game messages sent to dms. */
+  dm?: boolean;
 }
 
 export interface Arena extends Record<string, unknown> {
