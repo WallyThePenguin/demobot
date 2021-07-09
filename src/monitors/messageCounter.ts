@@ -1,6 +1,6 @@
 import { bot } from "../../cache.ts";
-import { bigintToSnowflake } from "../../deps.ts";
-import { db } from "../database/database.ts";
+import { runQuery } from "../database/client.ts";
+import { GuildSchema, UserSchema } from "../database/schemas.ts";
 
 bot.monitors.set("messageCounter", {
   name: "messageCounter",
@@ -10,17 +10,22 @@ bot.monitors.set("messageCounter", {
   ignoreDM: true,
   async execute(message) {
     //Find if Guild the monitor fired in is in my db.
-    const guild = db.guilds.has(bigintToSnowflake(message.guildId));
+    const [guild] = await runQuery<GuildSchema>(`SELECT * FROM "GuildSchema" WHERE "guildId" = $1`, [message.guildId]);
     if (!guild) return;
 
-    const Usercheck = await db.users.has(bigintToSnowflake(message.authorId));
+    const [Usercheck] = await runQuery<UserSchema>(`SELECT * FROM "UserSchema" WHERE id = $1`, [message.authorId]);
     if (!Usercheck) {
-      db.users.create(bigintToSnowflake(message.authorId), { id: bigintToSnowflake(message.authorId), messages: 1 });
-      return undefined;
+      await runQuery<UserSchema>(
+        `INSERT INTO "UserSchema" (id, messages) VALUES 
+        ($1, 1)`,
+        [message.authorId]
+      );
+      return;
     }
-    const User = await db.users.get(bigintToSnowflake(message.authorId));
-    if (!User) return;
-    if (User.messages)
-      return await db.users.update(bigintToSnowflake(message.authorId), { messages: User.messages + 1 });
+    if (Usercheck) {
+      await runQuery<UserSchema>(`UPDATE "UserSchema" SET "messages" = "messages" + 1 WHERE "id"=$1`, [
+        message.authorId,
+      ]);
+    }
   },
 });

@@ -11,7 +11,7 @@ import { PermissionLevels } from "../.././types/commands.ts";
 import { Embed } from "../../utils/Embed.ts";
 import { sendEmbed, createCommand } from "../../utils/helpers.ts";
 import { setupRules, imagerules, vcrules, pollinghelp } from "../../../conflist.ts";
-import { db } from "../../database/database.ts";
+import { runQuery } from "../../database/client.ts";
 createCommand({
   name: "setup",
   dmOnly: false,
@@ -66,11 +66,11 @@ createCommand({
     if (!polls) return sendMessage(message.channelId, "Error Getting Embed Promises for polls.");
 
     // Add the message.id to rulesid and polls channelid in guildschema.
-    db.guilds.create(bigintToSnowflake(fullGuild.id), {
-      id: bigintToSnowflake(fullGuild.id),
-      rulesid: bigintToSnowflake(rules.id),
-      pollsid: bigintToSnowflake(polls.channelId),
-    });
+    await runQuery(
+      `INSERT INTO "GuildSchema" ("guildId", rulesid, pollsid)
+    VALUES($1, $2, $3)`,
+      [fullGuild.id, bigintToSnowflake(rules.id), bigintToSnowflake(polls.channelId)]
+    );
 
     //Creating a permanent invite when all of this has been done.
     const inv = await createInvite(chanid, {

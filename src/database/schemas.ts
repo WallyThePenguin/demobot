@@ -1,22 +1,15 @@
-export interface ClientSchema {
-  /** The bot id */
-  id: string;
-}
-interface candidate {
-  //**Candidate UserId */
-  id?: string;
-  //**Number of Votes they have gotten. */
-  votes: number;
-}
-export interface VoteSchema {
-  candidate1: candidate;
-  candidate2: candidate;
-  candidate3: candidate;
+export interface VoteSchema extends Record<string, unknown> {
+  //**UserID */
+  id: bigint;
+  //**Number of Votes */
+  vote: number;
+  //**Unique Candidate ID */
+  numID: number;
 }
 
-export interface GuildSchema {
+export interface GuildSchema extends Record<string, unknown> {
   /** The guild id */
-  id: string;
+  guildId: bigint;
   /** The custom prefix for this guild */
   prefix?: string;
   /** The language for this guild */
@@ -29,54 +22,53 @@ export interface GuildSchema {
   leaderid?: string;
 }
 
-export interface UserSchema {
+export interface UserSchema extends Record<string, unknown> {
   /**The user sending the message */
-  id: string;
+  id: bigint;
   /** Amount of messages the person has sent during the week. */
   messages: number;
 }
-interface stats {
-  //**Amount of health you have */
-  Health: number;
-  //**Amount of Attack Dmg you have */
-  Basicattack?: number;
-  //**Amount of Ability Power you have */
-  Abilitypower?: number;
-  //**Amount of Speed, if you get to move first or not */
-  Speed: number;
-  //**Amount Of Luck you have (For Drops) */
-  Luck?: number;
-  //**For Strategists */
-  Chance?: number;
-  //**CritChance, basically chanceroll for extra dmg. */
-  CritChance: number;
-  //**How big of a multiplier you get when you land crit. */
-  CritDmgMultiplier: number;
-  //**Defense, Basically Going to subtract from attack dmg when getting hit. */
-  Defense: number;
-}
-interface money {
-  name: string;
-  moneycount: number;
-}
-export interface EconUserSchema {
+export interface GameUserSchema extends Record<string, unknown> {
   /**UserId */
-  id: string;
+  id: bigint;
   //**Money */
-  money: money;
-  //**StatSchema */
-  stats: stats;
-  //**Adventure count you went on */
-  Adventurecount: number;
+  money: number;
+  //**Amount of health you have */
+  health?: number;
+  //**Amount of Attack Dmg you have */
+  basicattack?: number;
+  //**Amount of Ability Power you have */
+  abilitypower?: number;
+  //**Amount of Speed, if you get to move first or not */
+  speed?: number;
+  //**Amount Of Luck you have (For Drops) */
+  luck?: number;
+  //**For Strategists */
+  chance?: number;
+  //**CritChance, basically chanceroll for extra dmg. */
+  critchance?: number;
+  //**How big of a multiplier you get when you land crit. */
+  critdmgmultiplier?: number;
+  //**Defense, Basically Going to subtract from attack dmg when getting hit. */
+  defense?: number;
+  //**Whether or not game messages sent to dms. */
+  dm?: boolean;
 }
-
-export interface adventure {
+export interface CardUserSchema extends Record<string, unknown> {
+  //**DiscordUserId */
+  id: bigint;
+  //**Card Inventory of the user */
+  cards: [];
+  //**Deck of a user for a fight */
+  deck: [];
+}
+export interface Arena extends Record<string, unknown> {
+  //**UserID to Distinguish between Arena instances */
+  id: bigint;
   //**Endless */
-  EndlessPVE: boolean;
+  endlesspve: boolean;
   //**Number 1-10 for now, difficulty of the fights */
-  Difficulty: number;
+  difficulty: number;
   //**How many Enemies you will encounter, based on Difficulty. */
-  EnemyCount?: number;
-  //**Enemy stats, based on difficulty. */
-  Enemies: stats;
+  enemycount?: number;
 }

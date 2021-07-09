@@ -2,7 +2,8 @@ import { bot } from "../../cache.ts";
 import { PermissionLevels } from "../types/commands.ts";
 import { createCommand, createSubcommand, getCurrentLanguage } from "../utils/helpers.ts";
 import { Embed } from "../utils/Embed.ts";
-import { db } from "../database/database.ts";
+import { runQuery } from "../database/client.ts";
+import { GuildSchema } from "../database/schemas.ts";
 import { log } from "../utils/logger.ts";
 
 const allowedLanguages = [
@@ -68,11 +69,10 @@ createSubcommand("language", {
       message.send({ embed });
     } else {
       bot.guildLanguages.set(message.guildId, newLanguage.id);
-      await db.guilds
-        .update(message.guildId.toString(), {
-          language: newLanguage.id,
-        })
-        .catch(log.error);
+      await runQuery<GuildSchema>(`UPDATE "GuildSchema" SET "language" = $1 WHERE "guildId"=$2`, [
+        newLanguage.id,
+        message.guildId,
+      ]).catch(log.error);
 
       const embed = new Embed()
         .setTitle("Success")
