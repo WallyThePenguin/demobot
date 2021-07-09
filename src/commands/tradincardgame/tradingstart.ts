@@ -4,7 +4,6 @@ import { needButton } from "../../utils/collectors.ts";
 import { createCommand } from "../../utils/helpers.ts";
 import { runQuery, gamedatacheck } from "../../database/client.ts";
 import {
-  editMessage,
   sendInteractionResponse,
   snowflakeToBigint,
   DiscordInteractionResponseTypes,
@@ -59,31 +58,29 @@ createCommand({
     switch (buttonreply.customId) {
       case "1":
         {
-          const runq = await runQuery<GameUserSchema>(defaultstats, [message.authorId, true]);
+          await runQuery<GameUserSchema>(defaultstats, [message.authorId, true]);
           sendInteractionResponse(snowflakeToBigint(buttonreply.interaction.id), buttonreply.interaction.token, {
             type: DiscordInteractionResponseTypes.UpdateMessage,
             data: {
               embeds: [dmembed],
             },
           }).catch(console.warn);
-          const message3 = await sendDirectMessage(message.authorId, { embeds: [embed2], components: buttons2 });
+          //Need const here to edit direct message
+          await sendDirectMessage(message.authorId, { embeds: [embed2], components: buttons2 });
         }
         break;
 
       case "2":
         {
           runQuery<GameUserSchema>(defaultstats, [message.authorId, false]);
-          const editedmessage = await sendInteractionResponse(
-            snowflakeToBigint(buttonreply.interaction.id),
-            buttonreply.interaction.token,
-            {
-              type: DiscordInteractionResponseTypes.UpdateMessage,
-              data: {
-                embeds: [embed2],
-                components: buttons2,
-              },
-            }
-          ).catch(console.warn);
+          //Need const here to edit again
+          await sendInteractionResponse(snowflakeToBigint(buttonreply.interaction.id), buttonreply.interaction.token, {
+            type: DiscordInteractionResponseTypes.UpdateMessage,
+            data: {
+              embeds: [embed2],
+              components: buttons2,
+            },
+          }).catch(console.warn);
         }
         break;
     }
