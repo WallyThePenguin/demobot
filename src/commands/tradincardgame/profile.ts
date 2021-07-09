@@ -1,15 +1,6 @@
 import { Embed } from "../../utils/Embed.ts";
-import { Components } from "../../utils/components.ts";
-import { needButton } from "../../utils/collectors.ts";
 import { createCommand } from "../../utils/helpers.ts";
 import { runQuery, gamedatacheck } from "../../database/client.ts";
-import {
-  editMessage,
-  sendInteractionResponse,
-  snowflakeToBigint,
-  DiscordInteractionResponseTypes,
-  sendDirectMessage,
-} from "../../../deps.ts";
 import { GameUserSchema } from "../../database/schemas.ts";
 createCommand({
   name: `profile`,
