@@ -11,3 +11,4 @@ easily using the [Discordeno library](https://github.com/discordeno/discordeno).
 ## Pre-requisites
 
 - [Deno](https://deno.land)
+- [PSQL](https://www.postgresql.org/)
