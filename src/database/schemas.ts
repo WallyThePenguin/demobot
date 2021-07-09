@@ -54,7 +54,14 @@ export interface GameUserSchema extends Record<string, unknown> {
   //**Whether or not game messages sent to dms. */
   dm?: boolean;
 }
-
+export interface CardUserSchema extends Record<string, unknown> {
+  //**DiscordUserId */
+  id: bigint;
+  //**Card Inventory of the user */
+  cards: [];
+  //**Deck of a user for a fight */
+  deck: [];
+}
 export interface Arena extends Record<string, unknown> {
   //**UserID to Distinguish between Arena instances */
   id: bigint;

@@ -53,6 +53,13 @@ async function createTables() {
         "numID" integer NOT NULL,
         CONSTRAINT "VoteSchema_pkey" PRIMARY KEY ("numID", id)
     )`,
+    `CREATE TABLE IF NOT EXISTS public."CardUserSchema"
+(
+    id bigint NOT NULL,
+    cards integer[],
+    deck integer[],
+    CONSTRAINT "CardUserSchema_pkey" PRIMARY KEY (id)
+)`,
   ];
 
   for (const query of queries) {
