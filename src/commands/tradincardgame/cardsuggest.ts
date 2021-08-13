@@ -51,12 +51,14 @@ createCommand({
       return message.reply("Please put a number value for this! Please try the command again!");
     const embed = new Embed()
       .setTitle(`NEW CARD SUGGESTED!`)
+      .addField(`User:`, `<@${message.authorId}>`)
       .addField(`Name:`, `${name.content}`)
       .addField(`Attack:`, `${attack.content}`)
       .addField(`Defence:`, `${defence.content}`)
       .addField(`Speed:`, `${speed.content}`)
       .addField(`Description:`, `${description.content}`)
       .setThumbnail(image.attachments[0].url);
+    message.reply(`Message send for review:`);
     message.reply({ embeds: [embed] });
     sendMessage(snowflakeToBigint(configs.suggestWebhook), { embeds: [embed] });
   },
