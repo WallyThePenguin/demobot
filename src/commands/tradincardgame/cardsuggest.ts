@@ -58,8 +58,7 @@ createCommand({
       .addField(`Speed:`, `${speed.content}`)
       .addField(`Description:`, `${description.content}`)
       .setThumbnail(image.attachments[0].url);
-    message.reply(`Message send for review:`);
-    message.reply({ embeds: [embed] });
+    message.reply(`Message send for review:` + { embeds: [embed] });
     sendMessage(snowflakeToBigint(configs.suggestWebhook), { embeds: [embed] });
   },
 });
