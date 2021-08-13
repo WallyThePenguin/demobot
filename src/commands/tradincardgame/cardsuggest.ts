@@ -1,7 +1,7 @@
 import { Embed } from "../../utils/Embed.ts";
 import { createCommand } from "../../utils/helpers.ts";
 import { needMessage } from "../../utils/collectors.ts";
-import { sendMessage, snowflakeToBigint, sendWebhook } from "../../../deps.ts";
+import { sendWebhook } from "../../../deps.ts";
 import { configs } from "../../../configs.ts";
 createCommand({
   name: `suggestcard`,
