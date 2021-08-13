@@ -24,7 +24,7 @@ createCommand({
         `You already have been through the tutorial already! If you would like to go through it again, say \`!tutorial\``
       );
     //**Set the default stats here, will change later. */
-    const defaultstats = `INSERT INTO "GameUserSchema" (id, money, health, basicattack, abilitypower, speed, luck, chance, critchance, critdmgmultiplier, defense, dm) VALUES ($1, 99999, 99999, 99999, 99999, 99999, 99999, 99999, 99999, 99999, 99999, $2)`;
+    const defaultstats = `INSERT INTO "GameUserSchema" (id, money, health, basicattack, abilitypower, speed, luck, chance, critchance, critdmgmultiplier, defense, dm, xp) VALUES ($1, 99999, 99999, 99999, 99999, 99999, 99999, 99999, 99999, 99999, 99999, $2, 0)`;
     //**embed one will be the prompting an option */
     const embed1 = new Embed()
       .setAuthor(`${message.guild?.botMember?.nick || message.guild?.bot?.tag}`, message.guild?.bot?.avatarURL)
