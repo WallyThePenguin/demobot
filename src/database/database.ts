@@ -28,6 +28,7 @@ async function createTables() {
       critdmgmultiplier integer,
       defense integer,
       dm boolean,
+      xp integer,
       CONSTRAINT "GameUserSchema_pkey" PRIMARY KEY (id)
   )`,
     `CREATE TABLE IF NOT EXISTS public."GuildSchema"
@@ -53,13 +54,37 @@ async function createTables() {
         "numID" integer NOT NULL,
         CONSTRAINT "VoteSchema_pkey" PRIMARY KEY ("numID", id)
     )`,
-    `CREATE TABLE IF NOT EXISTS public."CardUserSchema"
-(
-    id bigint NOT NULL,
-    cards integer[],
-    deck integer[],
-    CONSTRAINT "CardUserSchema_pkey" PRIMARY KEY (id)
-)`,
+    `CREATE TABLE IF NOT EXISTS public.globalcardlist
+    (
+        id integer NOT NULL DEFAULT nextval('globalcardlist_id_seq'::regclass),
+        name text COLLATE pg_catalog."default" NOT NULL,
+        level integer,
+        attack integer,
+        defence integer,
+        speed integer,
+        imagelink text COLLATE pg_catalog."default" NOT NULL,
+        description text COLLATE pg_catalog."default" NOT NULL,
+        rarity integer NOT NULL,
+        CONSTRAINT globalcardlist_pkey PRIMARY KEY (id)
+    )`,
+    `CREATE TABLE IF NOT EXISTS public.usercardinventory
+    (
+        id integer NOT NULL,
+        userid bigint NOT NULL,
+        level integer NOT NULL,
+        cardnumber integer NOT NULL DEFAULT nextval('usercardinventory_cardnumber_seq'::regclass),
+        isindeck boolean NOT NULL,
+        CONSTRAINT usercardinventory_pkey PRIMARY KEY (cardnumber),
+        CONSTRAINT uniqueinventory UNIQUE (id, userid, level, cardnumber),
+        CONSTRAINT inventory FOREIGN KEY (id)
+            REFERENCES public.globalcardlist (id) MATCH SIMPLE
+            ON UPDATE CASCADE
+            ON DELETE CASCADE
+            NOT VALID
+    )`,
+    `CREATE INDEX IF NOT EXISTS isindeck
+    ON public.usercardinventory USING btree
+    (isindeck ASC NULLS LAST)`,
   ];
 
   for (const query of queries) {
