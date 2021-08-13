@@ -31,6 +31,8 @@ export interface UserSchema extends Record<string, unknown> {
 export interface GameUserSchema extends Record<string, unknown> {
   /**UserId */
   id: bigint;
+  /**XP To convert to level */
+  xp: number;
   //**Money */
   money: number;
   //**Amount of health you have */
@@ -54,14 +56,6 @@ export interface GameUserSchema extends Record<string, unknown> {
   //**Whether or not game messages sent to dms. */
   dm?: boolean;
 }
-export interface CardUserSchema extends Record<string, unknown> {
-  //**DiscordUserId */
-  id: bigint;
-  //**Card Inventory of the user */
-  cards: [];
-  //**Deck of a user for a fight */
-  deck: [];
-}
 export interface Arena extends Record<string, unknown> {
   //**UserID to Distinguish between Arena instances */
   id: bigint;
@@ -71,4 +65,23 @@ export interface Arena extends Record<string, unknown> {
   difficulty: number;
   //**How many Enemies you will encounter, based on Difficulty. */
   enemycount?: number;
+}
+
+export interface globalcardlist extends Record<string, unknown> {
+  id?: number;
+  name: string;
+  level?: number;
+  attack?: number;
+  defence?: number;
+  speed?: number;
+  imagelink: string;
+  description: string;
+  rarity: number;
+}
+
+export interface usercardinventory extends Record<string, unknown> {
+  id: number;
+  userid: bigint;
+  level: number;
+  cardnumber: number;
 }
