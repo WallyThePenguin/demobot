@@ -1,6 +1,6 @@
 import { Pool } from "./../../deps.ts";
 import { init } from "./database.ts";
-import { GameUserSchema, CardUserSchema } from "./schemas.ts";
+import { GameUserSchema, globalcardlist } from "./schemas.ts";
 const dbPool = new Pool(
   {
     user: "postgres",
@@ -25,6 +25,7 @@ export async function runQuery<T extends Record<string, unknown>>(
   client.release();
   return dbResult.rows;
 }
+await init();
 //**Check if data exists */
 export async function gamedatacheck(user: bigint): Promise<boolean> {
   const check = await runQuery(`SELECT 1 FROM "GameUserSchema" WHERE id = $1 LIMIT 1`, [user]);
@@ -62,25 +63,65 @@ interface userdata extends Record<string, unknown> {
 //**Look at User Stats. */
 export async function statdata(user: bigint): Promise<userdata> {
   const [userdata] = await runQuery<GameUserSchema>(
-    `SELECT money, health, basicattack, abilitypower, speed, luck, chance, critchance, critdmgmultiplier, defense FROM "GameUserSchema" WHERE id = $1 LIMIT 1`,
+    `SELECT money, health, basicattack, abilitypower, speed, luck, chance, critchance, critdmgmultiplier, defense, xp FROM "GameUserSchema" WHERE id = $1 LIMIT 1`,
     [user]
   );
   return userdata;
 }
-interface carddata {
-  cards: [];
+interface xplevel extends Record<string, unknown> {
+  xp: number;
+  level: number;
+  levelup?: boolean;
 }
-//**Look at User Card Stats */
-export async function findcardData(user: bigint): Promise<carddata[]> {
-  const [cardfind] = await runQuery<CardUserSchema>(`SELECT cards FROM CardUserSchema WHERE id = $1 LIMIT 1`, [user]);
-  return cardfind.cards;
+//Get xp requirement for each level
+export function xpforlevel(level: number) {
+  const xpmini = Math.floor((level + 10) ** (9 / 5));
+  const xpmax = Math.floor((level + 11) ** (9 / 5) - 1);
+  return { levelminimum: xpmini, levelmaximum: xpmax };
 }
-interface deckdata {
-  deck: [];
+//Convert user xp to level
+export async function checklevel(user: bigint): Promise<xplevel> {
+  const xpamount = await runQuery<GameUserSchema>(`SELECT xp FROM "GameUserSchema" WHERE id = $1`, [user]);
+  const userlevel = Math.floor(xpamount[0].xp ** (5 / 9) - 10);
+  return { xp: xpamount[0].xp, level: userlevel };
 }
-//**Look at User Deck */
-export async function findDeckdata(user: bigint): Promise<deckdata[]> {
-  const [deckfind] = await runQuery<CardUserSchema>(`SELECT deck FROM CardUserSchema WHERE id = $1`, [user]);
-  return deckfind.deck;
+
+//Give or Take xp of a user
+export async function xpchange(user: bigint, xp: number, give: true): Promise<xplevel> {
+  const oldamount = await checklevel(user);
+  await runQuery(`UPDATE "GameUserSchema" SET "xp" = "xp" ${give ? "+" : "-"} $2 WHERE id = $1`, [user, xp]);
+  const newamount = await checklevel(user);
+  console.log(
+    `${xp} of ${give} XP Given to ${user}! Before: ${oldamount.xp} LVL${oldamount.level}, After: ${newamount.xp}, LVL${newamount.level}!`
+  );
+  const check = oldamount.level === newamount.level;
+  return { xp: newamount.xp, level: newamount.level, levelup: check };
 }
-await init();
+
+//CREATE A CARD
+export async function cardcreate(
+  name: string,
+  level: number,
+  attack: number,
+  defence: number,
+  speed: number,
+  imagelink: string,
+  description: string,
+  rarity: number
+): Promise<globalcardlist> {
+  const [newcard] = await runQuery<globalcardlist>(
+    `INSERT INTO globalcardlist (name, level, attack, defence, speed, imagelink, description, rarity) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+    [name, level, attack, defence, speed, imagelink, description, rarity]
+  );
+  console.log(newcard);
+  return {
+    name: newcard.name,
+    level: newcard.level,
+    attack: newcard.attack,
+    defence: newcard.defence,
+    speed: newcard.speed,
+    imagelink: newcard.imagelink,
+    description: newcard.description,
+    rarity: newcard.rarity,
+  };
+}
