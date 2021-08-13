@@ -17,8 +17,6 @@ export function registerTasks() {
 
         bot.runningTasks.initialTimeouts.push(
           setInterval(async () => {
-            if (!bot.fullyReady) return;
-            log.info(`[TASK: ${bgYellow(black(task.name))}] Started.`);
             try {
               await task.execute();
             } catch (error) {
