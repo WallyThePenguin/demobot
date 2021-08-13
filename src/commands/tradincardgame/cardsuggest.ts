@@ -1,7 +1,7 @@
 import { Embed } from "../../utils/Embed.ts";
 import { createCommand } from "../../utils/helpers.ts";
 import { needMessage } from "../../utils/collectors.ts";
-import { sendMessage, snowflakeToBigint } from "../../../deps.ts";
+import { sendMessage, snowflakeToBigint, sendWebhook } from "../../../deps.ts";
 import { configs } from "../../../configs.ts";
 createCommand({
   name: `suggestcard`,
@@ -58,7 +58,10 @@ createCommand({
       .addField(`Speed:`, `${speed.content}`)
       .addField(`Description:`, `${description.content}`)
       .setThumbnail(image.attachments[0].url);
-    message.reply(`Message send for review:` + { embeds: [embed] });
-    sendMessage(snowflakeToBigint(configs.suggestWebhook), { embeds: [embed] });
+    message.reply({ content: "Information Sent for Review:", embeds: [embed] });
+    await sendWebhook(configs.suggestWebhook, configs.webhooktoken, {
+      content: `<@258337390643511306>`,
+      embeds: [embed],
+    });
   },
 });
