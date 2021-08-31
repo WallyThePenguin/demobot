@@ -44,6 +44,7 @@ createCommand({
     const rarity = await needMessage(message.authorId, message.channelId).catch(console.error);
     if (!rarity) return;
     if (isNaN(Number(rarity.content))) return;
+    //Create card based off of the stats given.
     const id = await cardcreate(
       name.content,
       Number(level.content),
@@ -55,6 +56,7 @@ createCommand({
       Number(rarity.content)
     ).catch(console.log);
     if (!id) return;
+    //Now Give output (need to implement imagescript into this later.)
     const embed = new Embed()
       .setTitle(`NEW CARD CREATED!`)
       .addField(`ID:`, `${id.id}`)
