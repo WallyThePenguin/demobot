@@ -55,6 +55,8 @@ export interface GameUserSchema extends Record<string, unknown> {
   defense?: number;
   //**Whether or not game messages sent to dms. */
   dm?: boolean;
+  statpoints: number;
+  totalpoints: number;
 }
 export interface Arena extends Record<string, unknown> {
   //**UserID to Distinguish between Arena instances */
@@ -68,20 +70,33 @@ export interface Arena extends Record<string, unknown> {
 }
 
 export interface globalcardlist extends Record<string, unknown> {
+  //**Card ID */
   id?: number;
+  //**Card Name */
   name: string;
+  //**Card Level */
   level?: number;
+  //**Attack Damage */
   attack?: number;
+  //**How tanky */
   defence?: number;
+  //**If the amount of speed is faster than the enemies cards, move first. */
   speed?: number;
+  //**ImageURL of the card. */
   imagelink: string;
+  //**Describe the card, Where is it from/Explain the meme. */
   description: string;
+  //**How hard is it to find? */
   rarity: number;
 }
 
 export interface usercardinventory extends Record<string, unknown> {
+  //**Id of the card */
   id: number;
+  //**Id of the user who owns this card. */
   userid: bigint;
+  //**level of the card. */
   level: number;
+  //**Unique Card ID. */
   cardnumber: number;
 }
