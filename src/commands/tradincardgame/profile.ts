@@ -25,7 +25,7 @@ createCommand({
       );
     //**Get the stats of the user */
     const [stats] = await runQuery<GameUserSchema>(
-      `SELECT money, health, basicattack, abilitypower, speed, luck, chance, critchance, critdmgmultiplier, defense FROM "GameUserSchema" WHERE id = $1 LIMIT 1`,
+      `SELECT money, health, basicattack, abilitypower, speed, luck, chance, critchance, critdmgmultiplier, defense, xp, statpoints, totalpoints FROM "GameUserSchema" WHERE id = $1 LIMIT 1`,
       [member.id]
     );
     const level = await checklevel(member.id);
@@ -35,7 +35,7 @@ createCommand({
       .setColor("random")
       .setTitle(`Stats:`)
       .setDescription(
-        `Here, You can view the current stats of ${member.mention} \n**Money:** ${stats.money} \n**Health:** ${stats.health} \n**Defense:** ${stats.defense} \n**Attack Damage:** ${stats.basicattack} \n**Ability Power:** ${stats.abilitypower} \n **Speed:** ${stats.speed} \n**Luck:** ${stats.luck} \n**Chance:** ${stats.chance} \n **Critical Chance:** ${stats.critchance} \n **Critical Damage Multiplier:** ${stats.critdmgmultiplier} \n **XP amount:** ${level.xp} \n **Level: ${level.level}`
+        `Here, You can view the current stats of ${member.mention} \n**Money:** ${stats.money} \n**Health:** ${stats.health} \n**Defense:** ${stats.defense} \n**Attack Damage:** ${stats.basicattack} \n**Ability Power:** ${stats.abilitypower} \n **Speed:** ${stats.speed} \n**Luck:** ${stats.luck} \n**Chance:** ${stats.chance} \n **Critical Chance:** ${stats.critchance} \n **Critical Damage Multiplier:** ${stats.critdmgmultiplier} \n **XP amount:** ${level.xp} \n **Level:** ${level.level} \n **Stat points:** ${stats.statpoints} \n **Total points:** ${stats.totalpoints}`
       )
       .setTimestamp();
     message.reply({ embeds: [statembed] });
