@@ -16,21 +16,23 @@ async function createTables() {
   )`,
     `CREATE TABLE IF NOT EXISTS public."GameUserSchema"
     (
-      id bigint NOT NULL,
-      money integer NOT NULL,
-      health integer,
-      basicattack integer,
-      abilitypower integer,
-      speed integer,
-      luck integer,
-      chance integer,
-      critchance integer,
-      critdmgmultiplier integer,
-      defense integer,
-      dm boolean,
-      xp integer,
-      CONSTRAINT "GameUserSchema_pkey" PRIMARY KEY (id)
-  )`,
+        id bigint NOT NULL,
+        money integer NOT NULL,
+        health integer,
+        basicattack integer,
+        abilitypower integer,
+        speed integer,
+        luck integer,
+        chance integer,
+        critchance integer,
+        critdmgmultiplier integer,
+        defense integer,
+        dm boolean,
+        xp integer,
+        statpoints integer,
+        totalpoints integer,
+        CONSTRAINT "GameUserSchema_pkey" PRIMARY KEY (id)
+    )`,
     `CREATE TABLE IF NOT EXISTS public."GuildSchema"
       (
           "guildId" bigint NOT NULL,
