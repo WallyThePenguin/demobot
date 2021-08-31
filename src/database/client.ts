@@ -69,32 +69,53 @@ export async function statdata(user: bigint): Promise<userdata> {
   return userdata;
 }
 interface xplevel extends Record<string, unknown> {
+  //**Xp Value*/
   xp: number;
+  //**Xp Converted to level */
   level: number;
+  //**See if user leveled up or not. */
   levelup?: boolean;
 }
 //Get xp requirement for each level
 export function xpforlevel(level: number) {
-  const xpmini = Math.floor((level + 10) ** (9 / 5));
+  //**Formula for minimum amount of xp for level*/
+  const xpmini = Math.ceil((level + 10) ** (9 / 5));
+  //**Formula for Max amount of xp for level */
   const xpmax = Math.floor((level + 11) ** (9 / 5) - 1);
   return { levelminimum: xpmini, levelmaximum: xpmax };
 }
 //Convert user xp to level
 export async function checklevel(user: bigint): Promise<xplevel> {
   const xpamount = await runQuery<GameUserSchema>(`SELECT xp FROM "GameUserSchema" WHERE id = $1`, [user]);
+  //**Simple Reciprocal formula to get userlevel for xp. */
   const userlevel = Math.floor(xpamount[0].xp ** (5 / 9) - 10);
   return { xp: xpamount[0].xp, level: userlevel };
 }
 
 //Give or Take xp of a user
-export async function xpchange(user: bigint, xp: number, give: true): Promise<xplevel> {
+export async function xpchange(user: bigint, xp: number, give = true): Promise<xplevel> {
+  //**Checklevel Before being affected */
   const oldamount = await checklevel(user);
+  //**Update the xp value to either take or gain xp */
   await runQuery(`UPDATE "GameUserSchema" SET "xp" = "xp" ${give ? "+" : "-"} $2 WHERE id = $1`, [user, xp]);
+  //**Check level after being affected */
   const newamount = await checklevel(user);
+  //**Log the xp change for now. */
   console.log(
     `${xp} of ${give} XP Given to ${user}! Before: ${oldamount.xp} LVL${oldamount.level}, After: ${newamount.xp}, LVL${newamount.level}!`
   );
-  const check = oldamount.level === newamount.level;
+  //**Check if the person levelled up */
+  const check = oldamount.level !== newamount.level;
+  //**IF they did, whats the difference */
+  const difference = Math.abs(newamount.level - oldamount.level);
+  //**If the check is true, they gain or get removed statpoints. */
+  if (check === true)
+    runQuery(
+      `UPDATE "GameUserSchema" SET "statpoints" = "statpoints" ${give ? "+" : "-"} $2, "totalpoints" = "totalpoints" ${
+        give ? "+" : "-"
+      } $2 WHERE id = $1`,
+      [user, difference]
+    );
   return { xp: newamount.xp, level: newamount.level, levelup: check };
 }
 
@@ -109,11 +130,14 @@ export async function cardcreate(
   description: string,
   rarity: number
 ): Promise<globalcardlist> {
+  //**Simple giving the parameters and logging into query. */
   const [newcard] = await runQuery<globalcardlist>(
     `INSERT INTO globalcardlist (name, level, attack, defence, speed, imagelink, description, rarity) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
     [name, level, attack, defence, speed, imagelink, description, rarity]
   );
+  //**Log the Creation */
   console.log(newcard);
+  //**Return the promise */
   return {
     name: newcard.name,
     level: newcard.level,
