@@ -49,6 +49,7 @@ createCommand({
     if (!rarity) return;
     if (isNaN(Number(rarity.content)))
       return message.reply("Please put a number value for this! Please try the command again!");
+    //Make embed based on args given.
     const embed = new Embed()
       .setTitle(`NEW CARD SUGGESTED!`)
       .addField(`User:`, `<@${message.authorId}>`)
@@ -58,7 +59,9 @@ createCommand({
       .addField(`Speed:`, `${speed.content}`)
       .addField(`Description:`, `${description.content}`)
       .setThumbnail(image.attachments[0].url);
+    //Now send them a "reciept" of what they made.
     message.reply({ content: "Information Sent for Review:", embeds: [embed] });
+    //Send webhook to the support server where owner and support staff can sort through.
     await sendWebhook(configs.suggestWebhook, configs.webhooktoken, {
       content: `<@258337390643511306>`,
       embeds: [embed],
