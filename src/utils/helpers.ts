@@ -18,6 +18,14 @@ import {
   sendMessage,
   snowflakeToBigint,
   ws,
+  editSlashResponse,
+  Interaction,
+  DiscordenoMember,
+  DiscordInteractionResponseTypes,
+  deleteSlashResponse,
+  CreateMessage,
+  bigintToSnowflake,
+  botHasChannelPermissions,
 } from "../../deps.ts";
 import { ArgumentDefinition, Command } from "../types/commands.ts";
 import { needButton, needMessage, needReaction } from "./collectors.ts";
@@ -527,4 +535,323 @@ export function calculateShardId(guildId: bigint) {
   if (ws.maxShards === 1) return 0;
 
   return Number((guildId >> 22n) % BigInt(ws.maxShards - 1));
+}
+/** This function should be used when you want to send a response that will send a reply message. */
+export async function sendResponse(channelId: bigint, messageId: bigint, content: string | CreateMessage) {
+  if (!(await botHasChannelPermissions(channelId, ["VIEW_CHANNEL", "SEND_MESSAGES", "READ_MESSAGE_HISTORY"]))) {
+    return;
+  }
+
+  const contentWithMention: CreateMessage =
+    typeof content === "string"
+      ? {
+          content,
+          allowedMentions: {
+            repliedUser: true,
+          },
+          messageReference: {
+            messageId: bigintToSnowflake(messageId),
+            failIfNotExists: false,
+          },
+        }
+      : {
+          ...content,
+          allowedMentions: {
+            ...(content.allowedMentions || {}),
+            repliedUser: true,
+          },
+          messageReference: {
+            messageId: bigintToSnowflake(messageId),
+            failIfNotExists: content.messageReference?.failIfNotExists === true,
+          },
+        };
+
+  return await sendMessage(channelId, contentWithMention).catch(log.warn);
+}
+export async function createInteractionDatabaseButtonPagination(
+  interaction: Omit<Interaction, "member">,
+  member: DiscordenoMember,
+  getEmbedCount: () => Promise<number>,
+  getNoneEmbed: () => Promise<Embed | undefined>,
+  getEmbed: (embedPage: number, max_page: number) => Promise<Embed>,
+  page = 1
+): Promise<void> {
+  await sendInteractionResponse(snowflakeToBigint(interaction.id), interaction.token, {
+    type: DiscordInteractionResponseTypes.DeferredChannelMessageWithSource,
+  }).catch(log.warn);
+
+  let currentPage = page;
+
+  const createComponents = async (): Promise<MessageComponents> => [
+    {
+      type: DiscordMessageComponentTypes.ActionRow,
+      components: [
+        {
+          type: DiscordMessageComponentTypes.Button,
+          label: "Previous",
+          customId: `${interaction.id}-Previous`,
+          style: DiscordButtonStyles.Primary,
+          disabled: currentPage === 1,
+        },
+        {
+          type: DiscordMessageComponentTypes.Button,
+          label: "Jump",
+          customId: `${interaction.id}-Jump`,
+          style: DiscordButtonStyles.Primary,
+          disabled: (await getEmbedCount()) <= 2,
+        },
+        {
+          type: DiscordMessageComponentTypes.Button,
+          label: "Next",
+          customId: `${interaction.id}-Next`,
+          style: DiscordButtonStyles.Primary,
+          disabled: currentPage >= (await getEmbedCount()),
+        },
+      ],
+    },
+  ];
+
+  const embedCount = Number(await getEmbedCount());
+  if (embedCount === 0) {
+    const noneEmbed = await getNoneEmbed();
+    if (noneEmbed) {
+      await editSlashResponse(interaction.token, {
+        embeds: [noneEmbed],
+      }).catch(log.warn);
+    }
+    return;
+  }
+  if (page > embedCount) {
+    return;
+  }
+
+  const currentEmbed = await getEmbed(currentPage, embedCount);
+  await editSlashResponse(interaction.token, {
+    embeds: [currentEmbed],
+    components: await createComponents(),
+  }).catch(log.warn);
+
+  if (embedCount === 1) {
+    return;
+  }
+
+  while (true) {
+    const collectedButton = await needButton(member.id, snowflakeToBigint(interaction.id), {
+      duration: 30 * 1000,
+    }).catch(log.error);
+
+    if (!collectedButton || !collectedButton.customId.startsWith(interaction.id.toString())) {
+      return;
+    }
+
+    const action = collectedButton.customId.split("-")[1];
+
+    switch (action) {
+      case "Next":
+        currentPage++;
+        break;
+      // deno-lint-ignore no-case-declarations
+      case "Jump":
+        await sendInteractionResponse(
+          snowflakeToBigint(collectedButton.interaction.id),
+          collectedButton.interaction.token,
+          {
+            type: DiscordInteractionResponseTypes.ChannelMessageWithSource,
+            data: {
+              content: "To what page would you like to jump? Say `cancel` or `0` to cancel the prompt.",
+            },
+          }
+        ).catch(log.warn);
+
+        const answer = await needMessage(member.id, snowflakeToBigint(interaction.channelId!));
+        await deleteMessage(snowflakeToBigint(interaction.channelId!), answer.id).catch(log.error);
+        await deleteSlashResponse(collectedButton.interaction.token);
+
+        const newPageNumber = Math.ceil(Number(answer.content));
+
+        if (isNaN(newPageNumber) || newPageNumber < 1 || newPageNumber > embedCount) {
+          continue;
+        }
+
+        currentPage = newPageNumber;
+
+        editSlashResponse(interaction.token, {
+          embeds: [await getEmbed(currentPage, embedCount)],
+          content: "",
+          components: await createComponents(),
+        }).catch(log.warn);
+
+        continue;
+      case "Previous":
+        currentPage--;
+        break;
+    }
+
+    if (currentPage < 1) {
+      currentPage = 1;
+    }
+
+    if (currentPage > embedCount) {
+      currentPage = embedCount;
+    }
+
+    await sendInteractionResponse(
+      snowflakeToBigint(collectedButton.interaction.id),
+      collectedButton.interaction.token,
+      {
+        type: 7,
+        data: {
+          embeds: [await getEmbed(currentPage, embedCount)],
+          content: "",
+          components: await createComponents(),
+        },
+      }
+    ).catch(log.warn);
+  }
+}
+//Create a DataBase with buttons Message Only.
+export async function createDatabasePagination(
+  message: DiscordenoMessage,
+  getEmbedCount: () => Promise<number>,
+  getNoneEmbed: () => Promise<Embed | undefined>,
+  getEmbed: (embedPage: number, max_page: number) => Promise<Embed>,
+  page = 1
+): Promise<void> {
+  const embedCount = Number(await getEmbedCount());
+
+  if (embedCount === 0) {
+    const noneEmbed = await getNoneEmbed();
+    if (noneEmbed) {
+      await sendEmbed(message.channelId, noneEmbed);
+    }
+    return;
+  }
+  if (page > embedCount) {
+    return;
+  }
+
+  const createComponents = async (): Promise<MessageComponents> => [
+    {
+      type: DiscordMessageComponentTypes.ActionRow,
+      components: [
+        {
+          type: DiscordMessageComponentTypes.Button,
+          label: "Previous",
+          customId: `${message.id}-Previous`,
+          style: DiscordButtonStyles.Primary,
+          disabled: currentPage === 1,
+        },
+        {
+          type: DiscordMessageComponentTypes.Button,
+          label: "Jump",
+          customId: `${message.id}-Jump`,
+          style: DiscordButtonStyles.Primary,
+          disabled: (await getEmbedCount()) <= 2,
+        },
+        {
+          type: DiscordMessageComponentTypes.Button,
+          label: "Next",
+          customId: `${message.id}-Next`,
+          style: DiscordButtonStyles.Primary,
+          disabled: currentPage >= (await getEmbedCount()),
+        },
+      ],
+    },
+  ];
+
+  const { channelId } = message;
+  let currentPage = page;
+  const currentEmbed = await getEmbed(currentPage, embedCount);
+  //deno-lint-ignore prefer-const
+  let currentEmbedMessage: DiscordenoMessage | void = await sendMessage(channelId, {
+    embed: currentEmbed,
+    components: await createComponents(),
+  });
+
+  if (!currentEmbedMessage || embedCount === 1) {
+    return;
+  }
+
+  while (true) {
+    if (!currentEmbedMessage) {
+      return;
+    }
+    const collectedButton = await needButton(message.authorId, message.id, {
+      duration: 30 * 1000,
+    }).catch(log.error);
+
+    if (!collectedButton || !collectedButton.customId.startsWith(message.id.toString())) {
+      return;
+    }
+
+    const action = collectedButton.customId.split("-")[1];
+
+    switch (action) {
+      case "Next":
+        currentPage++;
+        break;
+      //deno-lint-ignore no-case-declarations
+      case "Jump":
+        await sendInteractionResponse(
+          snowflakeToBigint(collectedButton.interaction.id),
+          collectedButton.interaction.token,
+          {
+            type: 6,
+          }
+        );
+
+        const question = await sendResponse(
+          message.channelId,
+          message.id,
+          "To what page would you like to jump? Say `cancel` or `0` to cancel the prompt."
+        );
+        if (!question) return;
+        const answer = await needMessage(message.authorId, message.channelId);
+        if (!answer) return;
+        await deleteMessages(message.channelId, [answer.id, question.id]).catch(log.error);
+
+        const newPageNumber = Math.ceil(Number(answer.content));
+
+        if (isNaN(newPageNumber) || newPageNumber < 1 || newPageNumber > embedCount) {
+          continue;
+        }
+
+        currentPage = newPageNumber;
+
+        editWebhookMessage(
+          snowflakeToBigint(collectedButton.interaction.applicationId),
+          collectedButton.interaction.token,
+          {
+            messageId: currentEmbedMessage.id,
+            embeds: [await getEmbed(currentPage, embedCount)],
+            components: await createComponents(),
+          }
+        );
+
+        continue;
+      case "Previous":
+        currentPage--;
+        break;
+    }
+
+    if (currentPage < 1) {
+      currentPage = 1;
+    }
+
+    if (currentPage > embedCount) {
+      currentPage = embedCount;
+    }
+
+    await sendInteractionResponse(
+      snowflakeToBigint(collectedButton.interaction.id),
+      collectedButton.interaction.token,
+      {
+        type: 7,
+        data: {
+          embeds: [await getEmbed(currentPage, embedCount)],
+          components: await createComponents(),
+        },
+      }
+    ).catch(log.error);
+  }
 }
