@@ -6,7 +6,7 @@ createCommand({
   name: `dictionary`,
   aliases: [`dict`, `d`],
   description: `Users are able to list every card in the game, they can also view a card with this.`,
-  guildOnly: false,
+  guildOnly: true,
   arguments: [
     { name: "search", type: "subcommand", required: false },
     {
@@ -89,7 +89,7 @@ createSubcommand(`dictionary`, {
 
     //Run a query based on the boolean
     const [search] = await runQuery<globalcardlist>(
-      `SELECT * FROM "globalcardlist" WHERE ${number ? "id" : "name"} = $1`,
+      `SELECT * FROM "globalcardlist" WHERE ${number ? "id" : "lower(name)"} ${number ? "=$1" : "=lower($1)"}`,
       [arg]
     );
 
