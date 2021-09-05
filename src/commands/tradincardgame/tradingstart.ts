@@ -10,7 +10,8 @@ import {
   sendDirectMessage,
 } from "../../../deps.ts";
 import { GameUserSchema } from "../../database/schemas.ts";
-
+import { configs } from "../../../configs.ts";
+//UNFINISHED, FINISH BEFORE RELEASING.
 createCommand({
   name: `gamestart`,
   aliases: [`gs`, `gstart`],
@@ -23,8 +24,7 @@ createCommand({
       return message.reply(
         `You already have been through the tutorial already! If you would like to go through it again, say \`!tutorial\``
       );
-    //**Set the default stats here, will change later. */
-    const defaultstats = `INSERT INTO "GameUserSchema" (id, money, health, basicattack, abilitypower, speed, luck, chance, critchance, critdmgmultiplier, defense, dm, xp, statpoints, totalpoints) VALUES ($1, 99999, 99999, 99999, 99999, 99999, 99999, 99999, 99999, 99999, 99999, $2, 74, 0, 0)`;
+    const defaultstatquery = `INSERT INTO "GameUserSchema" (id, money, health, basicattack, abilitypower, speed, luck, chance, critchance, critdmgmultiplier, defense, xp, statpoints, totalpoints) VALUES ($1, ${configs.defaultstats.money}, ${configs.defaultstats.health}, ${configs.defaultstats.basicattack}, ${configs.defaultstats.abilitypower}, ${configs.defaultstats.speed}, ${configs.defaultstats.luck}, ${configs.defaultstats.chance}, ${configs.defaultstats.critchance}, ${configs.defaultstats.critdmgmultiplier}, ${configs.defaultstats.defence}, ${configs.defaultstats.xp}, ${configs.defaultstats.statpoints}, ${configs.defaultstats.totalpoints})`;
     //**embed one will be the prompting an option */
     const embed1 = new Embed()
       .setAuthor(`${message.guild?.botMember?.nick || message.guild?.bot?.tag}`, message.guild?.bot?.avatarURL)
@@ -58,7 +58,7 @@ createCommand({
     switch (buttonreply.customId) {
       case "1":
         {
-          await runQuery<GameUserSchema>(defaultstats, [message.authorId, true]);
+          await runQuery<GameUserSchema>(defaultstatquery, [message.authorId]);
           sendInteractionResponse(snowflakeToBigint(buttonreply.interaction.id), buttonreply.interaction.token, {
             type: DiscordInteractionResponseTypes.UpdateMessage,
             data: {
@@ -72,7 +72,7 @@ createCommand({
 
       case "2":
         {
-          runQuery<GameUserSchema>(defaultstats, [message.authorId, false]);
+          runQuery<GameUserSchema>(defaultstatquery, [message.authorId, false]);
           //Need const here to edit again
           await sendInteractionResponse(snowflakeToBigint(buttonreply.interaction.id), buttonreply.interaction.token, {
             type: DiscordInteractionResponseTypes.UpdateMessage,
