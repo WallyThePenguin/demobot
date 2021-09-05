@@ -15,36 +15,36 @@ createCommand({
     const name = await needMessage(message.authorId, message.channelId).catch(console.error);
     if (!name) return;
     //Repeat
-    message.reply("What about the level?");
-    const level = await needMessage(message.authorId, message.channelId).catch(console.error);
-    if (!level) return;
-    if (isNaN(Number(level.content)))
-      return message.reply("Please put a number value for this! Please try the command again!");
-    message.reply("Now for attack?");
+    message.reply("Now for attack? (Number)");
     const attack = await needMessage(message.authorId, message.channelId).catch(console.error);
     if (!attack) return;
     if (isNaN(Number(attack.content)))
       return message.reply("Please put a number value for this! Please try the command again!");
-    message.reply("and defence?");
+    message.reply("and defence? (Number)");
     const defence = await needMessage(message.authorId, message.channelId).catch(console.error);
     if (!defence) return;
     if (isNaN(Number(defence.content)))
       return message.reply("Please put a number value for this! Please try the command again!");
-    message.reply("how about speed?");
+    message.reply("how about speed? (Number)");
     const speed = await needMessage(message.authorId, message.channelId).catch(console.error);
     if (!speed) return;
     if (isNaN(Number(speed.content)))
       return message.reply("Please put a number value for this! Please try the command again!");
-    message.reply("Provide an Image!");
+    message.reply("Provide an Image! (Attach an image)");
     const image = await needMessage(message.authorId, message.channelId).catch(console.error);
     if (!image) return;
     if (!image.attachments) return;
     if (image.attachments?.[0]?.contentType !== "image/png")
-      return message.reply("Please attach an image! Please try the command again!");
+      return message.reply("Please attach/upload an image! Please try the command again!");
     message.reply("Provide an Description!");
     const description = await needMessage(message.authorId, message.channelId).catch(console.error);
     if (!description) return;
-    message.reply("How rare is this?");
+    message.reply("Now for the Type of Card? (Attack, Speed, Tank, Magic)");
+    const type = await needMessage(message.authorId, message.channelId).catch(console.error);
+    if (!type) return;
+    if (type.content.toLowerCase() !== "attack" || "speed" || "tank" || "magic")
+      return message.reply("Please put a type value for this! Please try the command again!");
+    message.reply("How rare is this? (1 - 10)");
     const rarity = await needMessage(message.authorId, message.channelId).catch(console.error);
     if (!rarity) return;
     if (isNaN(Number(rarity.content)))
@@ -53,10 +53,12 @@ createCommand({
     const embed = new Embed()
       .setTitle(`NEW CARD SUGGESTED!`)
       .addField(`User:`, `<@${message.authorId}>`)
+      .addField(`Type:`, `${type.content.toLowerCase()}`)
       .addField(`Name:`, `${name.content}`)
       .addField(`Attack:`, `${attack.content}`)
       .addField(`Defence:`, `${defence.content}`)
       .addField(`Speed:`, `${speed.content}`)
+      .addField(`Rarity:`, `${rarity.content}/10`)
       .addField(`Description:`, `${description.content}`)
       .setThumbnail(image.attachments[0].url);
     //Now send them a "reciept" of what they made.
