@@ -142,6 +142,7 @@ export async function cardcreate(
     imagelink: newcard.imagelink,
     description: newcard.description,
     rarity: newcard.rarity,
+    type: newcard.type,
   };
 }
 export async function enemycreate(
