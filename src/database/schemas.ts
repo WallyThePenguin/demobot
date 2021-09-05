@@ -53,9 +53,9 @@ export interface GameUserSchema extends Record<string, unknown> {
   critdmgmultiplier?: number;
   //**Defense, Basically Going to subtract from attack dmg when getting hit. */
   defense?: number;
-  //**Whether or not game messages sent to dms. */
-  dm?: boolean;
+  //How many Points you currently have to add to your current stats.
   statpoints: number;
+  //How many points you had your entire game career.
   totalpoints: number;
 }
 export interface Arena extends Record<string, unknown> {
@@ -77,17 +77,19 @@ export interface globalcardlist extends Record<string, unknown> {
   //**Card Level */
   level?: number;
   //**Attack Damage */
-  attack?: number;
+  attack: number;
   //**How tanky */
-  defence?: number;
+  defence: number;
   //**If the amount of speed is faster than the enemies cards, move first. */
-  speed?: number;
+  speed: number;
   //**ImageURL of the card. */
   imagelink: string;
   //**Describe the card, Where is it from/Explain the meme. */
   description: string;
   //**How hard is it to find? */
   rarity: number;
+  //**Type of Card. */
+  type: string;
 }
 
 export interface usercardinventory extends Record<string, unknown> {
@@ -99,4 +101,12 @@ export interface usercardinventory extends Record<string, unknown> {
   level: number;
   //**Unique Card ID. */
   cardnumber: number;
+}
+
+export interface enemyuserschema extends Record<string, unknown> {
+  id: number;
+  name: string;
+  image: string;
+  type: "attack" | "tank" | "speed" | "magic";
+  description: string;
 }
