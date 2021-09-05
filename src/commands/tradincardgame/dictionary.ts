@@ -33,6 +33,7 @@ createSubcommand(`dictionary`, {
     //If theres nothing in the embed just return.
     const getNoneEmbed = (): Promise<Embed | undefined> => {
       // Useless stuff so its a promise, You could change the function so it does not require promise
+      //deno-lint-ignore no-unused-vars
       return new Promise((resolve, reject) => {
         resolve(new Embed().setTitle("None"));
       });
@@ -46,6 +47,7 @@ createSubcommand(`dictionary`, {
         limit,
       ]);
       const embed = new Embed().setTitle("Dictionary List").setFooter(`Page ${embedPage} / ${maxPage}`);
+      //deno-lint-ignore no-unused-vars
       data.forEach((card) => {
         const datamap = data
           .map(
