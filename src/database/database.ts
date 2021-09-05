@@ -15,24 +15,23 @@ async function createTables() {
       CONSTRAINT "Arena_pkey" PRIMARY KEY (id)
   )`,
     `CREATE TABLE IF NOT EXISTS public."GameUserSchema"
-    (
-        id bigint NOT NULL,
-        money integer NOT NULL,
-        health integer,
-        basicattack integer,
-        abilitypower integer,
-        speed integer,
-        luck integer,
-        chance integer,
-        critchance integer,
-        critdmgmultiplier integer,
-        defense integer,
-        dm boolean,
-        xp integer,
-        statpoints integer,
-        totalpoints integer,
-        CONSTRAINT "GameUserSchema_pkey" PRIMARY KEY (id)
-    )`,
+  (
+      id bigint NOT NULL,
+      money integer NOT NULL,
+      health integer,
+      basicattack integer,
+      abilitypower integer,
+      speed integer,
+      luck integer,
+      chance integer,
+      critchance integer,
+      critdmgmultiplier integer,
+      defense integer,
+      xp integer,
+      statpoints integer,
+      totalpoints integer,
+      CONSTRAINT "GameUserSchema_pkey" PRIMARY KEY (id)
+  )`,
     `CREATE TABLE IF NOT EXISTS public."GuildSchema"
       (
           "guildId" bigint NOT NULL,
@@ -60,15 +59,17 @@ async function createTables() {
     (
         id integer NOT NULL DEFAULT nextval('globalcardlist_id_seq'::regclass),
         name text COLLATE pg_catalog."default" NOT NULL,
-        level integer,
-        attack integer,
-        defence integer,
-        speed integer,
+        level integer NOT NULL,
+        attack integer NOT NULL,
+        defence integer NOT NULL,
+        speed integer NOT NULL,
         imagelink text COLLATE pg_catalog."default" NOT NULL,
         description text COLLATE pg_catalog."default" NOT NULL,
         rarity integer NOT NULL,
+        type text COLLATE pg_catalog."default" NOT NULL,
         CONSTRAINT globalcardlist_pkey PRIMARY KEY (id)
-    )`,
+    )
+    `,
     `CREATE TABLE IF NOT EXISTS public.usercardinventory
     (
         id integer NOT NULL,
@@ -87,6 +88,15 @@ async function createTables() {
     `CREATE INDEX IF NOT EXISTS isindeck
     ON public.usercardinventory USING btree
     (isindeck ASC NULLS LAST)`,
+    `CREATE TABLE IF NOT EXISTS public.enemyuserschema
+    (
+        id integer NOT NULL DEFAULT nextval('enemyuserschema_id_seq'::regclass),
+        name text COLLATE pg_catalog."default" NOT NULL,
+        image text COLLATE pg_catalog."default" NOT NULL,
+        type text COLLATE pg_catalog."default" NOT NULL,
+        description text COLLATE pg_catalog."default" NOT NULL,
+        CONSTRAINT enemyuserschema_pkey PRIMARY KEY (id)
+    )`,
   ];
 
   for (const query of queries) {
