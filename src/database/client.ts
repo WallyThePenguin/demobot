@@ -1,6 +1,6 @@
 import { Pool } from "./../../deps.ts";
 import { init } from "./database.ts";
-import { GameUserSchema, globalcardlist } from "./schemas.ts";
+import { GameUserSchema, globalcardlist, enemyuserschema } from "./schemas.ts";
 const dbPool = new Pool(
   {
     user: "postgres",
@@ -31,12 +31,6 @@ export async function gamedatacheck(user: bigint): Promise<boolean> {
   const check = await runQuery(`SELECT 1 FROM "GameUserSchema" WHERE id = $1 LIMIT 1`, [user]);
   if (check.length === 0) return false;
   else return true;
-}
-//**Check if the user enabled dms */
-export async function dmdatacheck(user: bigint): Promise<boolean> {
-  const [check] = await runQuery<GameUserSchema>(`SELECT dm FROM "GameUserSchema" WHERE id = $1 LIMIT 1`, [user]);
-  if (check.dm === true) return true;
-  else return false;
 }
 interface userdata extends Record<string, unknown> {
   //**Money */
@@ -128,12 +122,13 @@ export async function cardcreate(
   speed: number,
   imagelink: string,
   description: string,
-  rarity: number
+  rarity: number,
+  type: string
 ): Promise<globalcardlist> {
   //**Simple giving the parameters and logging into query. */
   const [newcard] = await runQuery<globalcardlist>(
-    `INSERT INTO globalcardlist (name, level, attack, defence, speed, imagelink, description, rarity) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
-    [name, level, attack, defence, speed, imagelink, description, rarity]
+    `INSERT INTO globalcardlist (name, level, attack, defence, speed, imagelink, description, rarity, type) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+    [name, level, attack, defence, speed, imagelink, description, rarity, type]
   );
   //**Log the Creation */
   console.log(newcard);
@@ -147,5 +142,25 @@ export async function cardcreate(
     imagelink: newcard.imagelink,
     description: newcard.description,
     rarity: newcard.rarity,
+  };
+}
+export async function enemycreate(
+  name: string,
+  image: string,
+  type: string,
+  description: string
+): Promise<enemyuserschema> {
+  //**Same thing as Card Create, A Bit Easier. */
+  const [newenemy] = await runQuery<enemyuserschema>(
+    `INSERT INTO enemyuserschema (name, image, type, description) VALUES ($1, $2, $3, $4) RETURNING *`,
+    [name, image, type, description]
+  );
+  console.log(newenemy);
+  return {
+    id: newenemy.id,
+    name: newenemy.name,
+    image: newenemy.image,
+    type: newenemy.type,
+    description: newenemy.description,
   };
 }
