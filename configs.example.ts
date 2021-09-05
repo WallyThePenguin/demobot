@@ -7,6 +7,25 @@ export const configs = {
   token: "",
   // The default prefix for your bot. Don't worry guilds can change this later.
   prefix: "!",
+  //Default Values.
+  defaultstats: {
+    money: 0,
+    health: 0,
+    basicattack: 0,
+    abilitypower: 0,
+    speed: 0,
+    luck: 0,
+    chance: 0,
+    critchance: 0,
+    critdmgmultiplier: 0,
+    defence: 0,
+    xp: 74,
+    statpoints: 0,
+    totalpoints: 0,
+  },
+  //This is for Suggestions channel
+  suggestWebhook: 0n, //bigintvaluehere
+  webhooktoken: "",
   // This isn't required but you can add bot list api keys here.
   botListTokens: {
     DISCORD_BOTS_CO: "",
