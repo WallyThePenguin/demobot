@@ -16,6 +16,11 @@ createCommand({
     const name = await needMessage(message.authorId, message.channelId).catch(console.error);
     if (!name) return;
     //Repeat
+    message.reply("Now for the Type of Card? (Attack, Speed, Tank, Magic)");
+    const type = await needMessage(message.authorId, message.channelId).catch(console.error);
+    if (!type) return;
+    if (type.content.toLowerCase() !== "attack" || "speed" || "tank" || "magic")
+      return message.reply("Please put a type value for this! Please try the command again!");
     message.reply("What about the level?");
     const level = await needMessage(message.authorId, message.channelId).catch(console.error);
     if (!level) return;
@@ -53,13 +58,15 @@ createCommand({
       Number(speed.content),
       image.attachments[0].url,
       description.content,
-      Number(rarity.content)
+      Number(rarity.content),
+      type.content.toLowerCase()
     ).catch(console.log);
     if (!id) return;
     //Now Give output (need to implement imagescript into this later.)
     const embed = new Embed()
       .setTitle(`NEW CARD CREATED!`)
       .addField(`ID:`, `${id.id}`)
+      .addField(`Type:`, `${type.content.toLowerCase()}`)
       .addField(`Name:`, `${name.content}`)
       .addField(`Attack:`, `${attack.content}`)
       .addField(`Defence:`, `${defence.content}`)
