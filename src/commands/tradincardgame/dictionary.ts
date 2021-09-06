@@ -80,6 +80,7 @@ createSubcommand(`dictionary`, {
     { name: `name`, type: `string`, required: false },
   ] as const,
   execute: async (message, args) => {
+    if (!args.id && !args.name) return message.reply(`Please Provide an ID or Name`);
     //Make a Constant with both arguments.
     const arg = args.id || args.name;
 
@@ -94,6 +95,7 @@ createSubcommand(`dictionary`, {
       `SELECT * FROM "globalcardlist" WHERE ${number ? "id" : "lower(name)"} ${number ? "=$1" : "=lower($1)"}`,
       [arg]
     );
+    if (!search) return message.reply(`Invalid ID or Name!`);
 
     //Send the info from the query.
     const embed = new Embed()
