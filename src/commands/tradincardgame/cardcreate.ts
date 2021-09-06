@@ -61,7 +61,7 @@ createCommand({
       Number(rarity.content),
       type.content.toLowerCase()
     ).catch(console.log);
-    if (!id) return;
+    if (!id) return console.log(Error);
     //Now Give output (need to implement imagescript into this later.)
     const embed = new Embed()
       .setTitle(`NEW CARD CREATED!`)

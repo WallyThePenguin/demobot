@@ -32,6 +32,7 @@ createCommand({
     if (!description) return;
     //Create the enemy
     const enemy = await enemycreate(name.content, image.content, type.content.toLowerCase(), description.content);
+    if (!enemy) return console.log(Error);
     //Now Give output (need to implement imagescript into this later.)
     const embed = new Embed()
       .setTitle(`NEW ENEMY CREATED!`)
