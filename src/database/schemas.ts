@@ -101,6 +101,8 @@ export interface usercardinventory extends Record<string, unknown> {
   level: number;
   //**Unique Card ID. */
   cardnumber: number;
+  //**If the card is in userdeck or not */
+  isindeck: boolean;
 }
 
 export interface enemyuserschema extends Record<string, unknown> {
