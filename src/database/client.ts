@@ -1,6 +1,6 @@
 import { Pool } from "./../../deps.ts";
 import { init } from "./database.ts";
-import { GameUserSchema, globalcardlist, enemyuserschema } from "./schemas.ts";
+import { GameUserSchema, globalcardlist, enemyuserschema, usercardinventory } from "./schemas.ts";
 const dbPool = new Pool(
   {
     user: "postgres",
@@ -163,5 +163,46 @@ export async function enemycreate(
     image: newenemy.image,
     type: newenemy.type,
     description: newenemy.description,
+  };
+}
+export async function givecard(
+  //The Card Being Given
+  cardid: number,
+  //User Getting The Card
+  user: bigint,
+  //Level of the card being given will always be 1 by default.
+  level = 1,
+  //Automatically not inside userdeck.
+  isindeck = false
+): Promise<usercardinventory> {
+  //**Simply run a insert query to basically give the user the card. */
+  const [givecard] = await runQuery<usercardinventory>(
+    `INSERT INTO usercardinventory (id, userid, level, isindeck) VALUES ($1, $2, $3, $4) RETURNING *`,
+    [cardid, user, level, isindeck]
+  );
+  console.log(givecard);
+  return {
+    id: givecard.id,
+    cardnumber: givecard.cardnumber,
+    userid: givecard.userid,
+    level: givecard.level,
+    isindeck: givecard.isindeck,
+  };
+}
+export async function searchcard(
+  //Card trying to find:
+  id: number
+): Promise<globalcardlist> {
+  const [findcard] = await runQuery<globalcardlist>(`SELECT * FROM "globalcardlist" WHERE id = $1)`, [id]);
+  return {
+    id: findcard.id,
+    name: findcard.name,
+    attack: findcard.attack,
+    defence: findcard.defence,
+    speed: findcard.speed,
+    imagelink: findcard.imagelink,
+    description: findcard.description,
+    rarity: findcard.rarity,
+    type: findcard.type,
   };
 }
