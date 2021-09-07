@@ -1,7 +1,6 @@
 import { Embed } from "../../utils/Embed.ts";
 import { createCommand, createDatabasePagination, createSubcommand } from "../../utils/helpers.ts";
 import { runQuery } from "../../database/client.ts";
-//deno-lint-ignore no-unused-vars
 import { usercardinventory, globalcardlist } from "../../database/schemas.ts";
 //UNFINISHED, FINISH BEFORE RELEASING.
 createCommand({
@@ -23,6 +22,7 @@ createCommand({
   guildOnly: false,
   execute: async (message, args) => {
     const user = args.user?.id || message.authorId;
+    const username = args.user?.username || message.member?.username;
     //number of cards per page.
     const cardsperpage = 10;
 
@@ -38,18 +38,18 @@ createCommand({
       // Useless stuff so its a promise, You could change the function so it does not require promise
       //deno-lint-ignore no-unused-vars
       return new Promise((resolve, reject) => {
-        resolve(new Embed().setTitle("No Card's Listed Under This User ID."));
+        resolve(new Embed().setTitle(`No Card's Listed Under This User. (${username})`));
       });
     };
     //
     const getEmbed = async (embedPage: number, maxPage: number): Promise<Embed> => {
       const offset = (embedPage - 1) * cardsperpage;
       const limit = cardsperpage;
-      const data = await runQuery<usercardinventory>(
-        `SELECT * FROM "usercardinventory" WHERE userid = $3 ORDER BY id ASC OFFSET $1 LIMIT $2`,
+      const data = await runQuery<usercardinventory & globalcardlist>(
+        `SELECT * FROM "usercardinventory" INNER JOIN "globalcardlist" ON "globalcardlist"."id"="usercardinventory"."id" WHERE userid = $3 ORDER BY cardnumber ASC OFFSET $1 LIMIT $2`,
         [offset, limit, user]
       );
-      const embed = new Embed().setTitle(`<@${user}> \`s inventory`).setFooter(`Page ${embedPage} / ${maxPage}`);
+      const embed = new Embed().setTitle(`${username}\`s inventory`).setFooter(`Page ${embedPage} / ${maxPage}`);
       //deno-lint-ignore no-unused-vars
       data.forEach((card) => {
         const datamap = data
@@ -61,8 +61,9 @@ createCommand({
               card.name +
               " **Rarity:** " +
               card.rarity +
-              ` **Image:** [Link](${card.imagelink})` +
-              `**Unique Card ID:**` +
+              ` **Level:** ` +
+              card.level +
+              ` **Unique Card ID:** ` +
               card.cardnumber
           )
           .join("\n");
@@ -87,9 +88,10 @@ createSubcommand(`inventory`, {
     const arg = args.cardnumber;
 
     //Run a query based on the boolean
-    const [search] = await runQuery<usercardinventory>(`SELECT * FROM "usercardinventory" WHERE cardnumber = $1`, [
-      arg,
-    ]);
+    const [search] = await runQuery<usercardinventory & globalcardlist>(
+      `SELECT * FROM "usercardinventory" INNER JOIN "globalcardlist" ON "globalcardlist"."id"="usercardinventory"."id" WHERE cardnumber = $1`,
+      [arg]
+    );
     if (!search) return message.reply(`Invalid ID`);
     //Theory Below For Stat Searching.
     //const [statsearch] = await runQuery<globalcardlist>(`SELECT * FROM "globalcardlist" WHERE name = $1 and level = $2`,[search.name, search.level])
