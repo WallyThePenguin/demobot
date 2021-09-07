@@ -20,12 +20,13 @@ createCommand({
   ] as const,
   execute: async (message, args) => {
     const user = args.user?.id || message.authorId;
+    const username = args.user?.username || message.member?.username;
     const cardgiven = await givecard(args.cardid, user, args?.level, args?.indeck);
     const cardsearch = await searchcard(args.cardid);
     const embed = new Embed()
       .setTitle(`New Card Given!`)
       .setThumbnail(`${cardsearch.imagelink}`)
-      .addField(`<@${cardgiven.userid}>`, `Got Card: ${cardsearch.name} #${cardsearch.id}`)
+      .addField(`${username}`, `**Got Card:** ${cardsearch.name} #${cardsearch.id}`)
       .addField(`Unique Card ID:`, `${cardgiven.cardnumber}`)
       .addField(`Want To Know More?`, `Use !dictionary command to learn more about the card!`);
     message.reply({ embeds: [embed] });
