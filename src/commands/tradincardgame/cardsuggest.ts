@@ -42,13 +42,14 @@ createCommand({
     message.reply("Now for the Type of Card? (Attack, Speed, Tank, Magic)");
     const type = await needMessage(message.authorId, message.channelId).catch(console.error);
     if (!type) return;
-    if (type.content.toLowerCase() !== "attack" || "speed" || "tank" || "magic")
+    if (type.content.toLowerCase() !== "attack" && "speed" && "tank" && "magic")
       return message.reply("Please put a type value for this! Please try the command again!");
     message.reply("How rare is this? (1 - 10)");
     const rarity = await needMessage(message.authorId, message.channelId).catch(console.error);
     if (!rarity) return;
     if (isNaN(Number(rarity.content)))
       return message.reply("Please put a number value for this! Please try the command again!");
+    if (Number(rarity.content) > 10) return message.reply("That Number is too high! Please Try Again!");
     //Make embed based on args given.
     const embed = new Embed()
       .setTitle(`NEW CARD SUGGESTED!`)

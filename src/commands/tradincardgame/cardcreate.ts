@@ -19,7 +19,7 @@ createCommand({
     message.reply("Now for the Type of Card? (Attack, Speed, Tank, Magic)");
     const type = await needMessage(message.authorId, message.channelId).catch(console.error);
     if (!type) return;
-    if (type.content.toLowerCase() !== "attack" || "speed" || "tank" || "magic")
+    if (type.content.toLowerCase() !== "attack" && "speed" && "tank" && "magic")
       return message.reply("Please put a type value for this! Please try the command again!");
     message.reply("What about the level?");
     const level = await needMessage(message.authorId, message.channelId).catch(console.error);
