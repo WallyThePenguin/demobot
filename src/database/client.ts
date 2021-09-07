@@ -165,6 +165,7 @@ export async function enemycreate(
     description: newenemy.description,
   };
 }
+//Give users Cards.
 export async function givecard(
   //The Card Being Given
   cardid: number,
@@ -189,11 +190,12 @@ export async function givecard(
     isindeck: givecard.isindeck,
   };
 }
+//Search For a Card.
 export async function searchcard(
   //Card trying to find:
   id: number
 ): Promise<globalcardlist> {
-  const [findcard] = await runQuery<globalcardlist>(`SELECT * FROM "globalcardlist" WHERE id = $1)`, [id]);
+  const [findcard] = await runQuery<globalcardlist>(`SELECT * FROM "globalcardlist" WHERE id = $1`, [id]);
   return {
     id: findcard.id,
     name: findcard.name,
@@ -205,4 +207,34 @@ export async function searchcard(
     rarity: findcard.rarity,
     type: findcard.type,
   };
+}
+export async function autocardscale(
+  //Try for card number
+  cardnumber: number
+): Promise<globalcardlist & usercardinventory> {
+  //Look For Cards Name And Cards
+  const [checkcard] = await runQuery<usercardinventory & globalcardlist>(
+    `SELECT * FROM "usercardinventory" INNER JOIN "globalcardlist" ON "globalcardlist"."id"="usercardinventory"."id" WHERE cardnumber = $1`,
+    [cardnumber]
+  );
+  //Look For The Card By Name And Level
+  const [lookforlevelabove] = await runQuery<globalcardlist>(
+    `SELECT * FROM "globalcardlist" WHERE name = $1 and level = $2 + 1`,
+    [checkcard.name, checkcard.level]
+  );
+  //Make the const a boolean value.
+  function newCardNeeded() {
+    return !lookforlevelabove;
+  }
+  //Main Function, Where the Brain Of The AutoScaling Is Happening
+
+  function mainFunction();
+  {
+    if (newCardNeeded()) {
+      //If True We Need to create a new card with bonus stats in my globalcardlist, and then edit the users cardlevel and id.
+    } else {
+      //If False We Just Edit the cards level and id.
+      const editcard = await runQuery(`UPDATE FROM "usercardinventory"`);
+    }
+  }
 }
