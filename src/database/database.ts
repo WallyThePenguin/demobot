@@ -67,6 +67,7 @@ async function createTables() {
         description text COLLATE pg_catalog."default" NOT NULL,
         rarity integer NOT NULL,
         type text COLLATE pg_catalog."default" NOT NULL,
+        magic integer NOT NULL,
         CONSTRAINT globalcardlist_pkey PRIMARY KEY (id)
     )
     `,
