@@ -37,6 +37,10 @@ createCommand({
     const speed = await needMessage(message.authorId, message.channelId).catch(console.error);
     if (!speed) return;
     if (isNaN(Number(speed.content))) return;
+    message.reply("how about magic?");
+    const magic = await needMessage(message.authorId, message.channelId).catch(console.error);
+    if (!magic) return;
+    if (isNaN(Number(magic.content))) return;
     message.reply("Provide an Image!");
     const image = await needMessage(message.authorId, message.channelId).catch(console.error);
     if (!image) return;
@@ -59,7 +63,8 @@ createCommand({
       image.attachments[0].url,
       description.content,
       Number(rarity.content),
-      type.content.toLowerCase()
+      type.content.toLowerCase(),
+      Number(magic.content)
     ).catch(console.log);
     if (!id) return console.log(Error);
     //Now Give output (need to implement imagescript into this later.)

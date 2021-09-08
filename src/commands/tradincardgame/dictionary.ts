@@ -104,6 +104,7 @@ createSubcommand(`dictionary`, {
       .addField("ID:", `${search.id}`)
       .addField("Rarity:", `${search.rarity}`)
       .addField("Attack:", `${search.attack}`)
+      .addField("Ability:", `${search.magic}`)
       .addField("Defence:", `${search.defence}`)
       .addField("Speed:", `${search.speed}`)
       .addField("Description:", `${search.description}`);

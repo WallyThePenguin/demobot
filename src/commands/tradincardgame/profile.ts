@@ -24,10 +24,7 @@ createCommand({
         `${member.mention} Is not in the database, have them start playing the game by saying \`!gs\`!`
       );
     //**Get the stats of the user */
-    const [stats] = await runQuery<GameUserSchema>(
-      `SELECT money, health, basicattack, abilitypower, speed, luck, chance, critchance, critdmgmultiplier, defense, xp, statpoints, totalpoints FROM "GameUserSchema" WHERE id = $1 LIMIT 1`,
-      [member.id]
-    );
+    const [stats] = await runQuery<GameUserSchema>(`SELECT * FROM "GameUserSchema" WHERE id = $1 LIMIT 1`, [member.id]);
     const level = await checklevel(member.id);
     //**Make an embed with the db stats and send. */
     const statembed = new Embed()

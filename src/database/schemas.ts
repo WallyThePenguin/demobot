@@ -82,6 +82,8 @@ export interface globalcardlist extends Record<string, unknown> {
   defence: number;
   //**If the amount of speed is faster than the enemies cards, move first. */
   speed: number;
+  //**Magic Damage */
+  magic: number;
   //**ImageURL of the card. */
   imagelink: string;
   //**Describe the card, Where is it from/Explain the meme. */
