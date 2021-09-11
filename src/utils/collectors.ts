@@ -16,8 +16,12 @@ import {
   CollectReactionsOptions,
   MessageCollectorOptions,
   ReactionCollectorOptions,
+  buttonReturn,
+  collectorFilter,
+  needComponentReturns,
+  selectMenuReturn,
 } from "../types/collectors.ts";
-import { Milliseconds } from "./constants/time.ts";
+import { Milliseconds, Time } from "./constants/time.ts";
 
 export async function needMessage(
   memberId: bigint,
@@ -200,5 +204,62 @@ export async function processButtonCollectors(data: Omit<ComponentInteraction, "
     customId: data.data?.customId || `No customId provided for this button.`,
     interaction: data,
     member,
+  });
+}
+export function isButton(data: needComponentReturns): data is buttonReturn {
+  return data.type == "button";
+}
+
+export function isSelectmenu(data: needComponentReturns): data is selectMenuReturn {
+  return data.type == "selectMenu";
+}
+
+/** Waits for a component interaction. Default time limit is 1/2 minute.
+ * Use functions `isButton`, `isSelectmenu` for results.
+ *
+ * Use `interactionId` if waiting for component on first level slash cmd response.
+ *
+ * Use `messageId` if waiting for component which is on a interactionResponse(message) with components  or if waiting for component which is on actual message(So its sent via sendMessage()).
+ * */
+export function needComponent(
+  interactionOrMessageId: bigint | string,
+  timeLimit: number = Time.minute / 2,
+  filter?: collectorFilter
+): Promise<needComponentReturns> {
+  return new Promise((resolve, reject) => {
+    interactionOrMessageId =
+      typeof interactionOrMessageId === "string" ? snowflakeToBigint(interactionOrMessageId) : interactionOrMessageId;
+    bot.componentCollectors.get(interactionOrMessageId)?.reject("New collector began");
+    bot.componentCollectors.set(interactionOrMessageId, {
+      interactionOrMessageId: interactionOrMessageId,
+      expires: Date.now() + timeLimit,
+      resolve: resolve,
+      reject: reject,
+      filter: filter,
+    });
+  });
+}
+
+/** Waits for a component interaction from one user only. Default time limit is 1/2 minute.
+ * Use functions `isButton`, `isSelectmenu` for results.
+ *
+ * Use `interactionId` if waiting for component on first level slash cmd response.
+ *
+ * Use `messageId` if waiting for component which is on a interactionResponse(message) with components.
+ *
+ * User id filtering is built in. */
+export function needComponentFromOneUser(
+  interactionOrMessageId: bigint | string,
+  memberId: bigint | string,
+  timeLimit: number = Time.minute / 2,
+  filter?: collectorFilter
+): Promise<needComponentReturns> {
+  return needComponent(interactionOrMessageId, timeLimit, (interaction, member) => {
+    const userId = interaction.user?.id ? snowflakeToBigint(interaction.user?.id) : member?.id;
+    if (userId !== memberId) return false;
+    if (filter) {
+      const passed = filter(interaction, member);
+      return passed;
+    } else return true;
   });
 }

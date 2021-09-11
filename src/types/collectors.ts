@@ -87,3 +87,30 @@ export interface ButtonCollectorReturn {
   interaction: Omit<Interaction, "member">;
   member?: DiscordenoMember;
 }
+export interface baseComponentReturn {
+  customId: string;
+  interaction: Omit<Interaction, "member">;
+  member?: DiscordenoMember;
+}
+
+export interface buttonReturn extends baseComponentReturn {
+  type: "button";
+}
+
+export interface selectMenuReturn extends baseComponentReturn {
+  type: "selectMenu";
+  selectedValues: string[];
+}
+
+export type needComponentReturns = buttonReturn | selectMenuReturn;
+
+export interface collector {
+  interactionOrMessageId: bigint;
+  expires: number;
+  resolve: (value: needComponentReturns) => void;
+  // deno-lint-ignore no-explicit-any
+  reject: (reason?: any) => void;
+  filter?: collectorFilter;
+}
+
+export type collectorFilter = (interaction: Omit<Interaction, "member">, member?: DiscordenoMember) => boolean;

@@ -26,6 +26,7 @@ export async function runQuery<T extends Record<string, unknown>>(
   return dbResult.rows;
 }
 await init();
+
 //**Check if data exists */
 export async function gamedatacheck(user: bigint): Promise<boolean> {
   const check = await runQuery(`SELECT 1 FROM "GameUserSchema" WHERE id = $1 LIMIT 1`, [user]);
@@ -54,6 +55,7 @@ interface userdata extends Record<string, unknown> {
   //**Defense, Basically Going to subtract from attack dmg when getting hit. */
   defense?: number;
 }
+
 //**Look at User Stats. */
 export async function statdata(user: bigint): Promise<userdata> {
   const [userdata] = await runQuery<GameUserSchema>(
@@ -70,6 +72,7 @@ interface xplevel extends Record<string, unknown> {
   //**See if user leveled up or not. */
   levelup?: boolean;
 }
+
 //Get xp requirement for each level
 export function xpforlevel(level: number) {
   //**Formula for minimum amount of xp for level*/
@@ -78,6 +81,7 @@ export function xpforlevel(level: number) {
   const xpmax = Math.floor((level + 11) ** (9 / 5) - 1);
   return { levelminimum: xpmini, levelmaximum: xpmax };
 }
+
 //Convert user xp to level
 export async function checklevel(user: bigint): Promise<xplevel> {
   const xpamount = await runQuery<GameUserSchema>(`SELECT xp FROM "GameUserSchema" WHERE id = $1`, [user]);
@@ -123,17 +127,19 @@ export async function cardcreate(
   imagelink: string,
   description: string,
   rarity: number,
-  type: string
+  type: string,
+  magic: number
 ): Promise<globalcardlist> {
   //**Simple giving the parameters and logging into query. */
   const [newcard] = await runQuery<globalcardlist>(
-    `INSERT INTO globalcardlist (name, level, attack, defence, speed, imagelink, description, rarity, type) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
-    [name, level, attack, defence, speed, imagelink, description, rarity, type]
+    `INSERT INTO globalcardlist (name, level, attack, defence, speed, imagelink, description, rarity, type, magic) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
+    [name, level, attack, defence, speed, imagelink, description, rarity, type, magic]
   );
   //**Log the Creation */
   console.log(newcard);
   //**Return the promise */
   return {
+    id: newcard.id,
     name: newcard.name,
     level: newcard.level,
     attack: newcard.attack,
@@ -143,8 +149,11 @@ export async function cardcreate(
     description: newcard.description,
     rarity: newcard.rarity,
     type: newcard.type,
+    magic: newcard.magic,
   };
 }
+
+//Create an Enemy
 export async function enemycreate(
   name: string,
   image: string,
@@ -165,6 +174,7 @@ export async function enemycreate(
     description: newenemy.description,
   };
 }
+
 //Give users Cards.
 export async function givecard(
   //The Card Being Given
@@ -190,6 +200,7 @@ export async function givecard(
     isindeck: givecard.isindeck,
   };
 }
+
 //Search For a Card.
 export async function searchcard(
   //Card trying to find:
@@ -201,6 +212,7 @@ export async function searchcard(
     name: findcard.name,
     attack: findcard.attack,
     defence: findcard.defence,
+    magic: findcard.magic,
     speed: findcard.speed,
     imagelink: findcard.imagelink,
     description: findcard.description,
@@ -208,33 +220,209 @@ export async function searchcard(
     type: findcard.type,
   };
 }
+
+//Scale Card To Level
 export async function autocardscale(
   //Try for card number
   cardnumber: number
-): Promise<globalcardlist & usercardinventory> {
+): Promise<(globalcardlist & usercardinventory) | undefined> {
   //Look For Cards Name And Cards
   const [checkcard] = await runQuery<usercardinventory & globalcardlist>(
     `SELECT * FROM "usercardinventory" INNER JOIN "globalcardlist" ON "globalcardlist"."id"="usercardinventory"."id" WHERE cardnumber = $1`,
     [cardnumber]
   );
+
   //Look For The Card By Name And Level
   const [lookforlevelabove] = await runQuery<globalcardlist>(
-    `SELECT * FROM "globalcardlist" WHERE name = $1 and level = $2 + 1`,
+    `SELECT * FROM "globalcardlist" WHERE name = $1 and level = $2+1`,
     [checkcard.name, checkcard.level]
   );
-  //Make the const a boolean value.
-  function newCardNeeded() {
-    return !lookforlevelabove;
-  }
-  //Main Function, Where the Brain Of The AutoScaling Is Happening
 
-  function mainFunction();
-  {
-    if (newCardNeeded()) {
-      //If True We Need to create a new card with bonus stats in my globalcardlist, and then edit the users cardlevel and id.
+  //Make the const a boolean value.
+  const Needed = function newCardNeeded() {
+    return !lookforlevelabove;
+  };
+
+  //Lets do the formula into a function.
+  function TypeStatMath(
+    //To Scale by Rarity
+    rarity: number,
+    //The Value of The Stat Currently.
+    value: number,
+    //Is it the main stat value or not.
+    type = false
+  ): number {
+    if (!type) {
+      const NonTypeValue = Math.ceil((rarity * 1.6 * value) / 3);
+      return NonTypeValue;
     } else {
-      //If False We Just Edit the cards level and id.
-      const editcard = await runQuery(`UPDATE FROM "usercardinventory"`);
+      const TypeValue = Math.ceil((rarity * 1.9 * value) / 3);
+      return TypeValue;
     }
+  }
+  //THE MAIN PART!!!!
+  if (Needed()) {
+    //If True We Need to create a new card with bonus stats in my globalcardlist, and then edit the users cardlevel and id.
+    switch (checkcard.type) {
+      case "attack": {
+        const query = await cardcreate(
+          checkcard.name,
+          checkcard.level + 1,
+          TypeStatMath(checkcard.rarity, checkcard.attack, true),
+          TypeStatMath(checkcard.rarity, checkcard.defence),
+          TypeStatMath(checkcard.rarity, checkcard.speed),
+          checkcard.imagelink,
+          checkcard.description,
+          checkcard.rarity,
+          checkcard.type,
+          TypeStatMath(checkcard.rarity, checkcard.magic)
+        );
+        const [updateusercard] = await runQuery<usercardinventory>(
+          `UPDATE "usercardinventory" SET "id"=$2, "level"=$3 WHERE userid = $1 and cardnumber = $4 RETURNING *`,
+          [checkcard.userid, query.id, query.level, checkcard.cardnumber]
+        );
+        return {
+          id: updateusercard.id,
+          userid: updateusercard.userid,
+          level: updateusercard.level,
+          cardnumber: cardnumber,
+          isindeck: updateusercard.isindeck,
+          name: query.name,
+          attack: query.attack,
+          defence: query.defence,
+          speed: query.speed,
+          imagelink: query.imagelink,
+          description: query.description,
+          rarity: query.rarity,
+          type: query.type,
+          magic: query.magic,
+        };
+      }
+      case "tank": {
+        const query = await cardcreate(
+          checkcard.name,
+          checkcard.level + 1,
+          TypeStatMath(checkcard.rarity, checkcard.attack),
+          TypeStatMath(checkcard.rarity, checkcard.defence, true),
+          TypeStatMath(checkcard.rarity, checkcard.speed),
+          checkcard.imagelink,
+          checkcard.description,
+          checkcard.rarity,
+          checkcard.type,
+          TypeStatMath(checkcard.rarity, checkcard.magic)
+        );
+        const [updateusercard] = await runQuery<usercardinventory>(
+          `UPDATE "usercardinventory" SET "id"=$2, "level"=$3 WHERE userid = $1 and cardnumber = $4 RETURNING *`,
+          [checkcard.userid, query.id, query.level, checkcard.cardnumber]
+        );
+        return {
+          id: updateusercard.id,
+          userid: updateusercard.userid,
+          level: updateusercard.level,
+          cardnumber: cardnumber,
+          isindeck: updateusercard.isindeck,
+          name: query.name,
+          attack: query.attack,
+          defence: query.defence,
+          speed: query.speed,
+          imagelink: query.imagelink,
+          description: query.description,
+          rarity: query.rarity,
+          type: query.type,
+          magic: query.magic,
+        };
+      }
+      case "speed": {
+        const query = await cardcreate(
+          checkcard.name,
+          checkcard.level + 1,
+          TypeStatMath(checkcard.rarity, checkcard.attack),
+          TypeStatMath(checkcard.rarity, checkcard.defence),
+          TypeStatMath(checkcard.rarity, checkcard.speed, true),
+          checkcard.imagelink,
+          checkcard.description,
+          checkcard.rarity,
+          checkcard.type,
+          TypeStatMath(checkcard.rarity, checkcard.magic)
+        );
+        const [updateusercard] = await runQuery<usercardinventory>(
+          `UPDATE "usercardinventory" SET "id"=$2, "level"=$3 WHERE userid = $1 and cardnumber = $4 RETURNING *`,
+          [checkcard.userid, query.id, query.level, checkcard.cardnumber]
+        );
+        return {
+          id: updateusercard.id,
+          userid: updateusercard.userid,
+          level: updateusercard.level,
+          cardnumber: cardnumber,
+          isindeck: updateusercard.isindeck,
+          name: query.name,
+          attack: query.attack,
+          defence: query.defence,
+          speed: query.speed,
+          imagelink: query.imagelink,
+          description: query.description,
+          rarity: query.rarity,
+          type: query.type,
+          magic: query.magic,
+        };
+      }
+      case "magic": {
+        const query = await cardcreate(
+          checkcard.name,
+          checkcard.level + 1,
+          TypeStatMath(checkcard.rarity, checkcard.attack),
+          TypeStatMath(checkcard.rarity, checkcard.defence),
+          TypeStatMath(checkcard.rarity, checkcard.speed),
+          checkcard.imagelink,
+          checkcard.description,
+          checkcard.rarity,
+          checkcard.type,
+          TypeStatMath(checkcard.rarity, checkcard.magic, true)
+        );
+        const [updateusercard] = await runQuery<usercardinventory>(
+          `UPDATE "usercardinventory" SET "id"=$2, "level"=$3 WHERE userid = $1 and cardnumber = $4 RETURNING *`,
+          [checkcard.userid, query.id, query.level, checkcard.cardnumber]
+        );
+        return {
+          id: updateusercard.id,
+          userid: updateusercard.userid,
+          level: updateusercard.level,
+          cardnumber: cardnumber,
+          isindeck: updateusercard.isindeck,
+          name: query.name,
+          attack: query.attack,
+          defence: query.defence,
+          speed: query.speed,
+          imagelink: query.imagelink,
+          description: query.description,
+          rarity: query.rarity,
+          type: query.type,
+          magic: query.magic,
+        };
+      }
+    }
+  } else {
+    //If False We Just Edit the cards level and id.
+    const [editcard] = await runQuery<usercardinventory>(
+      `UPDATE "usercardinventory" SET "id"=$1,"level"="level"+1 WHERE cardnumber=$2 RETURNING *`,
+      [lookforlevelabove.id, cardnumber]
+    );
+    //Return the abnoxious amount of values.
+    return {
+      id: editcard.id,
+      userid: editcard.userid,
+      level: editcard.level,
+      cardnumber: cardnumber,
+      isindeck: editcard.isindeck,
+      name: lookforlevelabove.name,
+      attack: lookforlevelabove.attack,
+      defence: lookforlevelabove.defence,
+      speed: lookforlevelabove.speed,
+      imagelink: lookforlevelabove.imagelink,
+      description: lookforlevelabove.description,
+      rarity: lookforlevelabove.rarity,
+      type: lookforlevelabove.type,
+      magic: lookforlevelabove.magic,
+    };
   }
 }

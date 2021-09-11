@@ -18,6 +18,7 @@ await Promise.all(
     "./src/tasks",
     "./src/permissionLevels",
     "./src/events",
+    "./src/listeners",
   ].map((path) => importDirectory(Deno.realPathSync(path)))
 );
 await fileLoader();
