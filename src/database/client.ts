@@ -278,8 +278,8 @@ export async function autocardscale(
           TypeStatMath(checkcard.rarity, checkcard.magic)
         );
         const [updateusercard] = await runQuery<usercardinventory>(
-          `UPDATE "usercardinventory" SET "id"=$2, "level"=$3 WHERE userid = $1 RETURNING *`,
-          [checkcard.userid, query.id, query.level]
+          `UPDATE "usercardinventory" SET "id"=$2, "level"=$3 WHERE userid = $1 and cardnumber = $4 RETURNING *`,
+          [checkcard.userid, query.id, query.level, checkcard.cardnumber]
         );
         return {
           id: updateusercard.id,
@@ -312,8 +312,8 @@ export async function autocardscale(
           TypeStatMath(checkcard.rarity, checkcard.magic)
         );
         const [updateusercard] = await runQuery<usercardinventory>(
-          `UPDATE "usercardinventory" SET "id"=$2, "level"=$3 WHERE userid = $1 RETURNING *`,
-          [checkcard.userid, query.id, query.level]
+          `UPDATE "usercardinventory" SET "id"=$2, "level"=$3 WHERE userid = $1 and cardnumber = $4 RETURNING *`,
+          [checkcard.userid, query.id, query.level, checkcard.cardnumber]
         );
         return {
           id: updateusercard.id,
@@ -346,8 +346,8 @@ export async function autocardscale(
           TypeStatMath(checkcard.rarity, checkcard.magic)
         );
         const [updateusercard] = await runQuery<usercardinventory>(
-          `UPDATE "usercardinventory" SET "id"=$2, "level"=$3 WHERE userid = $1 RETURNING *`,
-          [checkcard.userid, query.id, query.level]
+          `UPDATE "usercardinventory" SET "id"=$2, "level"=$3 WHERE userid = $1 and cardnumber = $4 RETURNING *`,
+          [checkcard.userid, query.id, query.level, checkcard.cardnumber]
         );
         return {
           id: updateusercard.id,
@@ -380,8 +380,8 @@ export async function autocardscale(
           TypeStatMath(checkcard.rarity, checkcard.magic, true)
         );
         const [updateusercard] = await runQuery<usercardinventory>(
-          `UPDATE "usercardinventory" SET "id"=$2, "level"=$3 WHERE userid = $1 RETURNING *`,
-          [checkcard.userid, query.id, query.level]
+          `UPDATE "usercardinventory" SET "id"=$2, "level"=$3 WHERE userid = $1 and cardnumber = $4 RETURNING *`,
+          [checkcard.userid, query.id, query.level, checkcard.cardnumber]
         );
         return {
           id: updateusercard.id,

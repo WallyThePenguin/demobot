@@ -856,8 +856,8 @@ export async function createDatabasePagination(
   }
 }
 interface customPaginationSchema extends Record<string, unknown> {
-  //Current Page
-  current: number;
+  messageId: bigint;
+  QueryObject: (usercardinventory & globalcardlist)[];
 }
 //Create a DataBase with buttons Message Only (For Use With CardCombination Command).
 export async function createCustomDataPagination(
@@ -867,7 +867,7 @@ export async function createCustomDataPagination(
   getEmbed: (embedPage: number, max_page: number) => Promise<Embed>,
   getQuery: (embedPage: number, max_page: number) => Promise<(usercardinventory & globalcardlist)[]>,
   page = 1
-): Promise<(usercardinventory & globalcardlist)[] | void> {
+): Promise<customPaginationSchema | void> {
   const embedCount = Number(await getEmbedCount());
 
   if (embedCount === 0) {
@@ -901,8 +901,8 @@ export async function createCustomDataPagination(
         },
         {
           type: DiscordMessageComponentTypes.Button,
-          label: `List`,
-          customId: `${message.id}-List`,
+          label: `Select`,
+          customId: `${message.id}-Select`,
           style: DiscordButtonStyles.Primary,
         },
       ],
@@ -920,19 +920,19 @@ export async function createCustomDataPagination(
   });
 
   if (!currentEmbedMessage || embedCount === 1) {
-    return currentData;
+    return { messageId: currentEmbedMessage.id, QueryObject: currentData };
   }
 
   while (true) {
     if (!currentEmbedMessage) {
-      return currentData;
+      return;
     }
     const collectedButton = await needButton(message.authorId, message.id, {
       duration: 30 * 1000,
     }).catch(log.error);
 
     if (!collectedButton || !collectedButton.customId.startsWith(message.id.toString())) {
-      return currentData;
+      return { messageId: currentEmbedMessage.id, QueryObject: currentData };
     }
 
     const action = collectedButton.customId.split("-")[1];
@@ -941,9 +941,9 @@ export async function createCustomDataPagination(
       case "Next":
         currentPage++;
         break;
-      case "List":
+      case "Select":
         console.log("Button Pressed, Data Probably Sent.");
-        return currentData;
+        return { messageId: currentEmbedMessage.id, QueryObject: currentData };
       case "Previous":
         currentPage--;
         break;

@@ -2,9 +2,10 @@ import { createCommand, createCustomDataPagination } from "../../utils/helpers.t
 import { Embed } from "../../utils/Embed.ts";
 import { runQuery, autocardscale } from "../../database/client.ts";
 import { globalcardlist, usercardinventory } from "../../database/schemas.ts";
-import { needButton, needComponentFromOneUser, isSelectmenu, needComponent } from "../../utils/collectors.ts";
+import { needButton, isSelectmenu, needComponentFromOneUser } from "../../utils/collectors.ts";
 import { sendInteractionResponse, snowflakeToBigint, DiscordInteractionResponseTypes } from "../../../deps.ts";
 import { SelectMenu } from "../../utils/components.ts";
+//This took a shitton of work to do, Don't Fuck with this place, Seriously.
 createCommand({
   name: `cardfusion`,
   aliases: [`cf`, `fuse`],
@@ -34,7 +35,7 @@ createCommand({
         resolve(new Embed().setTitle("None"));
       });
     };
-    //
+    //Make the Embed for The Paginator To Sift Through.
     const getEmbed = async (embedPage: number, maxPage: number): Promise<Embed> => {
       const offset = (embedPage - 1) * cardsperpage;
       const limit = cardsperpage;
@@ -62,6 +63,7 @@ createCommand({
       });
       return embed;
     };
+    //Make A query (Custom Paginator Part, Pls Dont Fuck With.)
     const getQuery = async (embedPage: number): Promise<(usercardinventory & globalcardlist)[]> => {
       const offset = (embedPage - 1) * cardsperpage;
       const limit = cardsperpage;
@@ -71,34 +73,58 @@ createCommand({
       );
       return data;
     };
+    //HERES THE PAGINATOR FUNCTION
     const page = await createCustomDataPagination(message, getembedcount, getNoneEmbed, getEmbed, getQuery);
-    if (!page) return console.log("RIP");
+    //If The Promises Are Fucked, Throw Returns.
+    if (!page) return;
+    const cardmenu = page.QueryObject;
+    //Same Thing Here.
+    if (!cardmenu) return;
+
+    //Cool Thing, Make Menu Options off getQuery Object, Cool Right?
     const selectmenu = new SelectMenu().setCustomId(`1`);
-    for (const cards of page) {
-      selectmenu.addOption(cards.name, cards.id.toString(), false);
+    for (const cards of cardmenu) {
+      selectmenu.addOption(`${cards.name} - Level: ${cards.level}`, cards.id.toString(), false);
     }
+
+    //Find ButtonPress For Select.
     const buttonreply = await needButton(message.authorId, message.id);
-    if (buttonreply.customId === `${message.id}-List`) {
+    if (buttonreply.customId === `${message.id}-Select`) {
       sendInteractionResponse(snowflakeToBigint(buttonreply.interaction.id), buttonreply.interaction.token, {
         type: DiscordInteractionResponseTypes.UpdateMessage,
         data: { components: [{ type: 1, components: [selectmenu] }] },
       }).catch(console.warn);
     }
-    console.log(`I'm Working.`);
-    const cardselected = await needComponent(message.id);
-    if (!cardselected) return console.log("Failed The Test.");
-    if (!isSelectmenu(cardselected)) return console.log(`Failed`);
-    if (cardselected.customId === `1`) {
-      console.log(`Fuck.`);
-    }
+
+    //**For Some Unknown Fucking Reason, NeedComponents needs message.id of the actual message itself,
+    //dont ask me why, thats why i have messageId on customDataPagination function Promise.*/
+    const cardselected = await needComponentFromOneUser(page.messageId, message.authorId, 1);
+
+    //If the Component Isnt a menu, Fuck off, seriously.
+    if (!isSelectmenu(cardselected)) return;
+
+    //If it is well good now do the fun stuff :)
     if (isSelectmenu(cardselected)) {
-      console.log("Worked.");
       if (selectmenu.customId === `1`) {
-        console.log(`Selected Card.`);
         const [card] = cardselected.selectedValues;
         const cardid = Number(card);
-        const [findcard] = await runQuery<usercardinventory>(``, []);
-        const cardscaled = autocardscale(findcard.cardnumber);
+        const [firstcard, secondcard] = await runQuery<usercardinventory>(
+          `SELECT * FROM "usercardinventory" WHERE userid=$1 and id=$2 ORDER BY cardnumber ASC`,
+          [message.authorId, cardid]
+        );
+        const updatedcard = await autocardscale(firstcard.cardnumber);
+        await runQuery<usercardinventory>(`DELETE FROM "usercardinventory" WHERE cardnumber=$1`, [
+          secondcard.cardnumber,
+        ]);
+        const successembed = new Embed()
+          .setTitle(`Card Fusion Complete!`)
+          .addField(`Card Upgraded,`, `**${updatedcard?.name}#${updatedcard?.cardnumber}**`)
+          .setTimestamp();
+        sendInteractionResponse(snowflakeToBigint(cardselected.interaction.id), cardselected.interaction.token, {
+          type: DiscordInteractionResponseTypes.UpdateMessage,
+          data: { content: `<@${message.authorId}>`, embeds: [successembed] },
+        });
+        return;
       }
     }
   },
