@@ -42,7 +42,7 @@ createCommand({
     message.reply("Now for the Type of Card? (Attack, Speed, Tank, Magic)");
     const type = await needMessage(message.authorId, message.channelId).catch(console.error);
     if (!type) return;
-    if (type.content.toLowerCase() !== "attack" && "speed" && "tank" && "magic")
+    if (!["attack", "speed", "tank", "magic"].includes(type.content.toLowerCase()))
       return message.reply("Please put a type value for this! Please try the command again!");
     message.reply("How rare is this? (1 - 10)");
     const rarity = await needMessage(message.authorId, message.channelId).catch(console.error);

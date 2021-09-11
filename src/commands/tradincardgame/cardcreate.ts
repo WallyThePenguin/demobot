@@ -19,7 +19,7 @@ createCommand({
     message.reply("Now for the Type of Card? (Attack, Speed, Tank, Magic)");
     const type = await needMessage(message.authorId, message.channelId).catch(console.error);
     if (!type) return;
-    if (type.content.toLowerCase() !== "attack" && "speed" && "tank" && "magic")
+    if (!["attack", "speed", "tank", "magic"].includes(type.content.toLowerCase()))
       return message.reply("Please put a type value for this! Please try the command again!");
     message.reply("What about the level?");
     const level = await needMessage(message.authorId, message.channelId).catch(console.error);
@@ -76,6 +76,7 @@ createCommand({
       .addField(`Attack:`, `${attack.content}`)
       .addField(`Defence:`, `${defence.content}`)
       .addField(`Speed:`, `${speed.content}`)
+      .addField(`Rarity:`, `${rarity.content}`)
       .addField(`Description:`, `${description.content}`)
       .setThumbnail(image.attachments[0].url);
     message.reply({ embeds: [embed] });
