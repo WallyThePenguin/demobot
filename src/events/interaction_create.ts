@@ -3,6 +3,13 @@ import { processButtonCollectors } from "../utils/collectors.ts";
 import { bot } from "../../cache.ts";
 
 bot.eventHandlers.interactionCreate = function (data, member) {
+  bot.interactionListeners.forEach(async (listener) => {
+    if (listener.filter) {
+      const allowed = listener.filter(data, member);
+      if (!allowed) return;
+    }
+    await listener.execute(data, member);
+  });
   // A SLASH COMMAND WAS USED
   if (data.type === DiscordInteractionTypes.ApplicationCommand) {
     const command = (data as SlashCommandInteraction).data?.name

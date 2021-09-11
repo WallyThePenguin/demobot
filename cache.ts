@@ -1,11 +1,11 @@
 import { configs } from "./configs.ts";
 import { cache, Collection, DiscordenoMessage, Manager, snowflakeToBigint, Track, ws } from "./deps.ts";
-import { ButtonCollector, MessageCollector, ReactionCollector } from "./src/types/collectors.ts";
+import { ButtonCollector, MessageCollector, ReactionCollector, collector } from "./src/types/collectors.ts";
 import { Argument, Command, PermissionLevels } from "./src/types/commands.ts";
 import { CustomEvents } from "./src/types/events.ts";
 import { Monitor } from "./src/types/monitors.ts";
 import { Task } from "./src/types/tasks.ts";
-
+import { interactionListener } from "./src/types/listeners/interactionListener.ts";
 export const bot = {
   fullyReady: false,
   activeGuildIDs: new Set<bigint>(),
@@ -19,6 +19,7 @@ export const bot = {
   guildLanguages: new Collection<bigint, string>(),
   messageCollectors: new Collection<bigint, MessageCollector>(),
   reactionCollectors: new Collection<bigint, ReactionCollector>(),
+  interactionListeners: new Collection<string, interactionListener>(),
   buttonCollectors: new Collection<bigint, ButtonCollector>(),
   inhibitors: new Collection<
     string,
@@ -42,6 +43,7 @@ export const bot = {
   memberLastActive: new Collection<bigint, number>(),
   musicQueues: new Collection<bigint, Track[]>(),
   loopingMusics: new Collection<bigint, boolean>(),
+  componentCollectors: new Collection<bigint, collector>(),
   lavadenoManager: new Manager(configs.nodes, {
     send(id, payload) {
       const shardId = cache.guilds.get(snowflakeToBigint(id))?.shardId;
