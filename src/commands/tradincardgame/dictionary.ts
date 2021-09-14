@@ -27,7 +27,7 @@ createSubcommand(`dictionary`, {
 
     //Sort the rows and divide them per page.
     const getembedcount = async (): Promise<number> => {
-      const count = Number((await runQuery(`SELECT COUNT(*) FROM "globalcardlist"`))[0].count);
+      const count = Number((await runQuery(`SELECT COUNT(*) FROM "globalcardlist" WHERE level=1`))[0].count);
       return Math.ceil(count / cardsperpage);
     };
     //If theres nothing in the embed just return.
@@ -42,10 +42,10 @@ createSubcommand(`dictionary`, {
     const getEmbed = async (embedPage: number, maxPage: number): Promise<Embed> => {
       const offset = (embedPage - 1) * cardsperpage;
       const limit = cardsperpage;
-      const data = await runQuery<globalcardlist>(`SELECT * FROM "globalcardlist" ORDER BY id ASC OFFSET $1 LIMIT $2`, [
-        offset,
-        limit,
-      ]);
+      const data = await runQuery<globalcardlist>(
+        `SELECT * FROM "globalcardlist" WHERE level=1 ORDER BY id ASC OFFSET $1 LIMIT $2`,
+        [offset, limit]
+      );
       const embed = new Embed().setTitle("Dictionary List").setFooter(`Page ${embedPage} / ${maxPage}`);
       //deno-lint-ignore no-unused-vars
       data.forEach((card) => {
@@ -78,36 +78,59 @@ createSubcommand(`dictionary`, {
       required: false,
     },
     { name: `name`, type: `string`, required: false },
+    { name: `level`, type: `number`, required: false },
   ] as const,
   execute: async (message, args) => {
     if (!args.id && !args.name) return message.reply(`Please Provide an ID or Name`);
+    //Got To Place Embed Here For Convenience.
+    function newembed(search: globalcardlist): Embed {
+      const embed = new Embed()
+        .setTitle(`${search.name}`)
+        .setThumbnail(`${search.imagelink}`)
+        .addField("ID:", `${search.id}`)
+        .addField("Level:", `${search.level}`)
+        .addField("Rarity:", `${search.rarity}`)
+        .addField("Attack:", `${search.attack}`)
+        .addField("Ability:", `${search.magic}`)
+        .addField("Defence:", `${search.defence}`)
+        .addField("Speed:", `${search.speed}`)
+        .addField("Description:", `${search.description}`);
+      return embed;
+    }
+    //Send the info from the query.
     //Make a Constant with both arguments.
     const arg = args.id || args.name;
+    const level = args.level;
+    //Wanted Level Default For Query.
+    let wantedlevel = 1;
 
+    //Figure if Level Is Defined.
+    const leveldefined = typeof level === "number";
+    //Well If It Isn't Set Default Value To level 1, If it Is, great, give it the value to wantedlevel.
+    if (!leveldefined) {
+      wantedlevel = 1;
+    }
+    if (leveldefined) {
+      wantedlevel = level!;
+    }
     //Figure out what type of argument it is.
     const type = typeof arg;
 
     //Make a boolean.
     const number = type === "number";
 
-    //Run a query based on the boolean
-    const [search] = await runQuery<globalcardlist>(
-      `SELECT * FROM "globalcardlist" WHERE ${number ? "id" : "lower(name)"} ${number ? "=$1" : "=lower($1)"}`,
-      [arg]
-    );
-    if (!search) return message.reply(`Invalid ID or Name!`);
-
-    //Send the info from the query.
-    const embed = new Embed()
-      .setTitle(`${search.name}`)
-      .setThumbnail(`${search.imagelink}`)
-      .addField("ID:", `${search.id}`)
-      .addField("Rarity:", `${search.rarity}`)
-      .addField("Attack:", `${search.attack}`)
-      .addField("Ability:", `${search.magic}`)
-      .addField("Defence:", `${search.defence}`)
-      .addField("Speed:", `${search.speed}`)
-      .addField("Description:", `${search.description}`);
-    message.reply({ embeds: [embed] });
+    //Run a query based on the number boolean, if the argument is a number return the id search query, if it is a string return the name query.
+    if (number) {
+      const [search] = await runQuery<globalcardlist>(`SELECT * FROM "globalcardlist" WHERE id=$1`, [arg]);
+      if (!search) return message.reply(`Invalid ID`);
+      message.reply({ embeds: [newembed(search)] });
+    } else {
+      const [search] = await runQuery<globalcardlist>(
+        `SELECT * FROM "globalcardlist" WHERE lower(name)=lower($1) and level=$2`,
+        [arg, wantedlevel]
+      );
+      if (!search) message.reply(`Invalid Name/Level`);
+      message.reply({ embeds: [newembed(search)] });
+    }
   },
 });
