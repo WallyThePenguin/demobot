@@ -81,7 +81,7 @@ createSubcommand(`dictionary`, {
     { name: `level`, type: `number`, required: false },
   ] as const,
   execute: async (message, args) => {
-    if (!args.id && !args.name) return message.reply(`Please Provide an ID or Name`);
+    if (!args.id && !args.name) return message.reply(`Please Provide an ID or Name (Type Command Again.)`);
     //Got To Place Embed Here For Convenience.
     function newembed(search: globalcardlist): Embed {
       const embed = new Embed()
@@ -97,7 +97,6 @@ createSubcommand(`dictionary`, {
         .addField("Description:", `${search.description}`);
       return embed;
     }
-    //Send the info from the query.
     //Make a Constant with both arguments.
     const arg = args.id || args.name;
     const level = args.level;
