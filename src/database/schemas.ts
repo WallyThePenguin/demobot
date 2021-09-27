@@ -57,6 +57,8 @@ export interface GameUserSchema extends Record<string, unknown> {
   statpoints: number;
   //How many points you had your entire game career.
   totalpoints: number;
+  //Daily Shop ID
+  dailyshopid?: number;
 }
 export interface Arena extends Record<string, unknown> {
   //**UserID to Distinguish between Arena instances */
@@ -113,4 +115,10 @@ export interface enemyuserschema extends Record<string, unknown> {
   image: string;
   type: "attack" | "tank" | "speed" | "magic";
   description: string;
+}
+
+export interface dailyshop extends Record<string, unknown> {
+  shopid: number;
+  cards: Array<number>;
+  luck: number;
 }
