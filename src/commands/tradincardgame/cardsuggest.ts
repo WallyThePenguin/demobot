@@ -34,7 +34,7 @@ createCommand({
     const image = await needMessage(message.authorId, message.channelId).catch(console.error);
     if (!image) return;
     if (!image.attachments) return;
-    if (image.attachments?.[0]?.contentType !== "image/png")
+    if (!image.attachments?.[0]?.contentType)
       return message.reply("Please attach/upload an image! Please try the command again!");
     message.reply("Provide an Description!");
     const description = await needMessage(message.authorId, message.channelId).catch(console.error);
