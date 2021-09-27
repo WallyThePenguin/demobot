@@ -15,23 +15,24 @@ async function createTables() {
       CONSTRAINT "Arena_pkey" PRIMARY KEY (id)
   )`,
     `CREATE TABLE IF NOT EXISTS public."GameUserSchema"
-  (
-      id bigint NOT NULL,
-      money integer NOT NULL,
-      health integer,
-      basicattack integer,
-      abilitypower integer,
-      speed integer,
-      luck integer,
-      chance integer,
-      critchance integer,
-      critdmgmultiplier integer,
-      defense integer,
-      xp integer,
-      statpoints integer,
-      totalpoints integer,
-      CONSTRAINT "GameUserSchema_pkey" PRIMARY KEY (id)
-  )`,
+    (
+        id bigint NOT NULL,
+        money integer NOT NULL,
+        health integer,
+        basicattack integer,
+        abilitypower integer,
+        speed integer,
+        luck integer,
+        chance integer,
+        critchance integer,
+        critdmgmultiplier integer,
+        defense integer,
+        xp integer,
+        statpoints integer,
+        totalpoints integer,
+        shopid integer,
+        CONSTRAINT "GameUserSchema_pkey" PRIMARY KEY (id)
+    )`,
     `CREATE TABLE IF NOT EXISTS public."GuildSchema"
       (
           "guildId" bigint NOT NULL,
@@ -97,6 +98,13 @@ async function createTables() {
         type text COLLATE pg_catalog."default" NOT NULL,
         description text COLLATE pg_catalog."default" NOT NULL,
         CONSTRAINT enemyuserschema_pkey PRIMARY KEY (id)
+    )`,
+    `CREATE TABLE IF NOT EXISTS public.dailyshop
+    (
+        shopid integer NOT NULL DEFAULT nextval('dailyshop_shopid_seq'::regclass),
+        cards integer[] NOT NULL,
+        luck integer NOT NULL,
+        CONSTRAINT dailyshop_pkey PRIMARY KEY (shopid)
     )`,
   ];
 
