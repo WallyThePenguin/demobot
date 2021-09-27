@@ -148,7 +148,7 @@ createCommand({
               [message.authorId]
             );
             if (!valuechange) return message.reply(`You do not have anymore StatPoints!`);
-            data.luck = valuechange.abilitypower;
+            data.abilitypower = valuechange.abilitypower;
             data.statpoints = valuechange.statpoints;
             sendInteractionResponse(snowflakeToBigint(buttonreply.interaction.id), buttonreply.interaction.token, {
               type: DiscordInteractionResponseTypes.UpdateMessage,
