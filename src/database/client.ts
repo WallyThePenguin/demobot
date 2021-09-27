@@ -1,6 +1,6 @@
 import { Pool } from "./../../deps.ts";
 import { init } from "./database.ts";
-import { GameUserSchema, globalcardlist, enemyuserschema, usercardinventory } from "./schemas.ts";
+import { GameUserSchema, globalcardlist, enemyuserschema, usercardinventory, dailyshop } from "./schemas.ts";
 const dbPool = new Pool(
   {
     user: "postgres",
@@ -424,5 +424,36 @@ export async function autocardscale(
       type: lookforlevelabove.type,
       magic: lookforlevelabove.magic,
     };
+  }
+}
+//Random Card Fix: Start giving actual random values instead of top list of queries every time.
+//Get Random Cards Based on 1-10 Rarity.
+export async function randomcardsget(rarity: number): Promise<number[] | void> {
+  const cards = await runQuery<globalcardlist>(
+    `SELECT "id" FROM (SELECT "id" FROM globalcardlist WHERE rarity=$1 and level=1) as "cards" TABLESAMPLE bernoulli(100) ORDER BY random() LIMIT $2`,
+    [rarity, 5]
+  );
+  if (cards.length == 0) return console.log(`Error Getting Cards on Rarity: ${rarity}`);
+  return cards.map((c) => c.id!);
+}
+//Reset And Startup for DailyShop, users randomcardsget.
+export async function dailyshopreset(): Promise<void> {
+  const checkshops = await runQuery<dailyshop>(`SELECT * FROM dailyshop`);
+  if (!checkshops) {
+    for (let i = 1; i <= 10; i++) {
+      const card = await randomcardsget(i);
+      console.log(card);
+      await runQuery<dailyshop>(`INSERT INTO dailyshop (cards) VALUES ($1)`, [card]);
+    }
+    return;
+  } else {
+    await runQuery<dailyshop>(`DELETE FROM dailyshop`);
+    await runQuery<dailyshop>(`ALTER SEQUENCE dailyshop_luck_seq RESTART WITH 1`);
+    for (let i = 1; i <= 10; i++) {
+      const card = await randomcardsget(i);
+      console.log(card);
+      await runQuery<dailyshop>(`INSERT INTO dailyshop (cards) VALUES ($1)`, [card]);
+    }
+    return;
   }
 }
