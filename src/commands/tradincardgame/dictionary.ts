@@ -4,7 +4,7 @@ import { runQuery } from "../../database/client.ts";
 import { globalcardlist } from "../../database/schemas.ts";
 createCommand({
   name: `dictionary`,
-  aliases: [`dict`, `d`],
+  aliases: [`dict`],
   description: `Users are able to list every card in the game, they can also view a card with this.`,
   guildOnly: true,
   arguments: [
