@@ -1,6 +1,14 @@
 import { Pool } from "./../../deps.ts";
 import { init } from "./database.ts";
-import { GameUserSchema, globalcardlist, enemyuserschema, usercardinventory, dailyshop } from "./schemas.ts";
+import {
+  GameUserSchema,
+  globalcardlist,
+  enemyuserschema,
+  usercardinventory,
+  dailyshop,
+  fightschema as _fightschema,
+  deckschema,
+} from "./schemas.ts";
 const dbPool = new Pool(
   {
     user: "postgres",
@@ -456,4 +464,84 @@ export async function dailyshopreset(): Promise<void> {
     }
     return;
   }
+}
+export interface deckediterror extends Record<string, unknown> {
+  //**If Error is 1: "No Cardnumber listed under this id." */
+  //**If Error is 2: "Too many cards in the deck to add another card." */
+  //**If Error is 3: "No Card To Remove. (Empty Deck)" */
+  error: 1 | 2 | 3;
+}
+export async function DeckViewEdit(
+  userid: bigint,
+  type?: "add" | "remove" | "view",
+  cardnumber?: number
+): Promise<deckschema | deckediterror> {
+  const cardsget = await runQuery<usercardinventory>(
+    `SELECT * FROM usercardinventory WHERE userid=$1 and isindeck=true`,
+    [userid]
+  );
+  console.log(cardsget);
+  if (type !== undefined && cardnumber !== undefined) {
+    switch (type) {
+      case "add": {
+        if (cardsget.length + 1 > 5) return { error: 2 };
+        console.log("Add Ran.");
+        const deckupdate = await runQuery<usercardinventory>(
+          `UPDATE "usercardinventory" SET isindeck=true WHERE userid=$1 and cardnumber=$2 RETURNING *`,
+          [userid, cardnumber]
+        );
+        const cardsget2 = await runQuery<usercardinventory>(
+          `SELECT * FROM usercardinventory WHERE userid=$1 and isindeck=true`,
+          [userid]
+        );
+        if (deckupdate.length === 0) return { error: 1 };
+        return {
+          userid: userid,
+          card1: cardsget2?.[0]?.cardnumber || null,
+          card2: cardsget2?.[1]?.cardnumber || null,
+          card3: cardsget2?.[2]?.cardnumber || null,
+          card4: cardsget2?.[3]?.cardnumber || null,
+          card5: cardsget2?.[4]?.cardnumber || null,
+        };
+      }
+      case "remove": {
+        if (cardsget.length === 0) return { error: 3 };
+        const deckupdate = await runQuery<usercardinventory>(
+          `UPDATE "usercardinventory" SET isindeck=false WHERE userid=$1 and cardnumber=$2 RETURNING *`,
+          [userid, cardnumber]
+        );
+        if (deckupdate.length === 0) return { error: 1 };
+        const cardsget2 = await runQuery<usercardinventory>(
+          `SELECT * FROM usercardinventory WHERE userid=$1 and isindeck=true`,
+          [userid]
+        );
+        if (deckupdate.length === 0) return { error: 1 };
+        return {
+          userid: userid,
+          card1: cardsget2?.[0]?.cardnumber || null,
+          card2: cardsget2?.[1]?.cardnumber || null,
+          card3: cardsget2?.[2]?.cardnumber || null,
+          card4: cardsget2?.[3]?.cardnumber || null,
+          card5: cardsget2?.[4]?.cardnumber || null,
+        };
+      }
+      case "view":
+        return {
+          userid: userid,
+          card1: cardsget?.[0]?.cardnumber || null,
+          card2: cardsget?.[1]?.cardnumber || null,
+          card3: cardsget?.[2]?.cardnumber || null,
+          card4: cardsget?.[3]?.cardnumber || null,
+          card5: cardsget?.[4]?.cardnumber || null,
+        };
+    }
+  } else
+    return {
+      userid: userid,
+      card1: cardsget?.[0]?.cardnumber || null,
+      card2: cardsget?.[1]?.cardnumber || null,
+      card3: cardsget?.[2]?.cardnumber || null,
+      card4: cardsget?.[3]?.cardnumber || null,
+      card5: cardsget?.[4]?.cardnumber || null,
+    };
 }
