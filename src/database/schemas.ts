@@ -122,3 +122,18 @@ export interface dailyshop extends Record<string, unknown> {
   cards: Array<number>;
   luck: number;
 }
+export interface fightschema extends Record<string, unknown> {
+  userid: bigint;
+  userhealth: number;
+  usercards: Array<number>;
+  enemyhealth: number;
+  enemycards: Array<number>;
+}
+export interface deckschema extends Record<string, unknown> {
+  userid: bigint;
+  card1: number | null;
+  card2: number | null;
+  card3: number | null;
+  card4: number | null;
+  card5: number | null;
+}
