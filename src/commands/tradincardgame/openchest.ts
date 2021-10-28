@@ -97,7 +97,7 @@ createCommand({
         const cardanalysis = await searchcard(chestopen.id);
         const successembed = new Embed()
           .setTitle(`Chest Opened!`)
-          .addField(`You Got...`, `**${cardanalysis.name}#${cardanalysis?.cardnumber}**`)
+          .addField(`You Got...`, `**${cardanalysis.name}#${chestopen?.cardnumber}**`)
           .setTimestamp();
         sendInteractionResponse(snowflakeToBigint(chestselected.interaction.id), chestselected.interaction.token, {
           type: DiscordInteractionResponseTypes.UpdateMessage,

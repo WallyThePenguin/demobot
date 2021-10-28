@@ -429,7 +429,7 @@ export async function autocardscale(
 export async function randomcardsget(rarity: number, numberOfCards: number): Promise<number[] | void> {
   const cards = await sql<
     globalcardlist[]
-  >`SELECT "id" FROM globalcardlist WHERE rarity=${rarity} and level=1 TABLESAMPLE bernoulli(100) ORDER BY random() LIMIT ${numberOfCards}`;
+  >`SELECT "id" FROM globalcardlist WHERE rarity=${rarity} and level=1 ORDER BY RANDOM() LIMIT ${numberOfCards}`;
   console.log(cards);
   if (cards.length == 0) return console.log(`Error Getting Cards on Rarity: ${rarity}`);
   return cards.map((c) => c.id!);
@@ -440,8 +440,9 @@ export async function dailyshopreset(): Promise<void> {
   if (!checkshops) {
     for (let i = 1; i <= 10; i++) {
       const card = await randomcardsget(i, 5);
+      if (!card) continue;
       console.log(card);
-      await sql<dailyshop[]>`INSERT INTO dailyshop (cards) VALUES (${card!})`;
+      await sql<dailyshop[]>`INSERT INTO dailyshop (cards) VALUES (${card})`;
     }
     return;
   } else {
@@ -449,8 +450,9 @@ export async function dailyshopreset(): Promise<void> {
     await sql<dailyshop[]>`ALTER SEQUENCE dailyshop_luck_seq RESTART WITH 1`;
     for (let i = 1; i <= 10; i++) {
       const card = await randomcardsget(i, 5);
+      if (!card) continue;
       console.log(card);
-      await sql<dailyshop[]>`INSERT INTO dailyshop (cards) VALUES (${card!})`;
+      await sql<dailyshop[]>`INSERT INTO dailyshop (cards) VALUES (${card})`;
     }
     return;
   }
@@ -575,7 +577,7 @@ export async function chestdrop(chestid: number, userid: bigint): Promise<userca
     //Give the Card
     const [giveCard] = await sql<
       usercardinventory[]
-    >`INSERT INTO usercardinventory (id, userid, level, isindeck) VALUES (${!randomizedCard}, ${userid.toString()}, 1, false) RETURNING *`;
+    >`INSERT INTO usercardinventory (id, userid, level, isindeck) VALUES (${randomizedCard!}, ${userid.toString()}, 1, false) RETURNING *`;
     //Return Card Values
     return {
       id: giveCard.id,
@@ -599,7 +601,7 @@ export async function chestdrop(chestid: number, userid: bigint): Promise<userca
     //Give the Card
     const [giveCard] = await sql<
       usercardinventory[]
-    >`INSERT INTO usercardinventory (id, userid, level, isindeck) VALUES (${!randomizedCard}, ${userid.toString()}, 1, false) RETURNING *`;
+    >`INSERT INTO usercardinventory (id, userid, level, isindeck) VALUES (${randomizedCard!}, ${userid.toString()}, 1, false) RETURNING *`;
     //Return Card Values
     return {
       id: giveCard.id,
