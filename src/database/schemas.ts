@@ -137,3 +137,9 @@ export interface deckschema extends Record<string, unknown> {
   card4: number | null;
   card5: number | null;
 }
+
+export interface chestinventoryschema extends Record<string, unknown> {
+  chestid: number;
+  userid: bigint;
+  chestlevel: number;
+}

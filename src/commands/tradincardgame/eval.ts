@@ -1,6 +1,6 @@
 import { bot } from "../../../cache.ts";
 import * as deps from "../../../deps.ts";
-import { runQuery } from "../../database/client.ts";
+import { sql } from "../../database/client.ts";
 import * as schemas from "../../database/schemas.ts";
 import * as I18NEXT from "../../utils/i18next.ts";
 import { PermissionLevels } from "../../types/commands.ts";
@@ -29,7 +29,7 @@ createCommand({
       bot,
       cache,
       deps,
-      runQuery,
+      sql,
       schemas,
       I18NEXT,
     };

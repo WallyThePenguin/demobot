@@ -1,6 +1,6 @@
 import { createCommand } from "../../utils/helpers.ts";
 import { Embed } from "../../utils/Embed.ts";
-import { runQuery, gamedatacheck, givecard } from "../../database/client.ts";
+import { sql, gamedatacheck, givecard } from "../../database/client.ts";
 import { globalcardlist, dailyshop, GameUserSchema } from "../../database/schemas.ts";
 import { Components } from "../../utils/components.ts";
 import { needButton } from "../../utils/collectors.ts";
@@ -18,7 +18,7 @@ createCommand({
     if (datacheck === false)
       return message.reply(`You do not have stats! To get started, use the \`!tradingstart\` or \`!ts\`command.`);
     //deno-lint-ignore prefer-const
-    let [data] = await runQuery<GameUserSchema>(`SELECT * FROM "GameUserSchema" WHERE id=$1`, [message.authorId]);
+    let [data] = await sql<GameUserSchema[]>`SELECT * FROM "GameUserSchema" WHERE id=${message.authorId.toString()}`;
     //Gotta Get the Luck, and Money as a let Variable because money data will be edited later.
     let luck = data.luck;
     if (data.luck! > 10) {
@@ -26,10 +26,9 @@ createCommand({
     }
     //Make Embed for DailyShop.
     async function dailyshopembed(): Promise<Embed> {
-      const dailyshopget = await runQuery<dailyshop & globalcardlist>(
-        `SELECT * FROM "dailyshop" INNER JOIN "globalcardlist" ON "globalcardlist"."id"=any("dailyshop"."cards") WHERE luck=$1`,
-        [luck]
-      );
+      const dailyshopget = await sql<
+        (dailyshop & globalcardlist)[]
+      >`SELECT * FROM "dailyshop" INNER JOIN "globalcardlist" ON "globalcardlist"."id"=any("dailyshop"."cards") WHERE luck=${!luck}`;
       const embed = new Embed().setTitle(`Daily Shop:`).setFooter(`CardGame.`);
       //deno-lint-ignore no-unused-vars
       dailyshopget.forEach((card) => {
@@ -51,10 +50,9 @@ createCommand({
       return embed;
     }
     async function dailyshopbuttons(): Promise<Components> {
-      const dailyshopget = await runQuery<dailyshop & globalcardlist>(
-        `SELECT * FROM "dailyshop" INNER JOIN "globalcardlist" ON "globalcardlist"."id"=any("dailyshop"."cards") WHERE luck=$1`,
-        [luck]
-      );
+      const dailyshopget = await sql<
+        (dailyshop & globalcardlist)[]
+      >`SELECT * FROM "dailyshop" INNER JOIN "globalcardlist" ON "globalcardlist"."id"=any("dailyshop"."cards") WHERE luck=${!luck}`;
       const buttons = new Components();
       dailyshopget.forEach((card) => {
         buttons.addButton(`${card.name}`, "Success", `${card.name}#${card.id}`, {
@@ -66,10 +64,9 @@ createCommand({
     const reply = await message.reply({ embeds: [await dailyshopembed()], components: await dailyshopbuttons() });
     const getbuttonpress = await needButton(message.authorId, reply.id);
     if (getbuttonpress) {
-      const [moneyget] = await runQuery<GameUserSchema>(
-        `UPDATE "GameUserSchema" SET "money"="money"-${luck! * 100} WHERE id=$1 RETURNING "money"`,
-        [message.authorId]
-      );
+      const [moneyget] = await sql<GameUserSchema[]>`UPDATE "GameUserSchema" SET "money"="money"-${
+        luck! * 100
+      } WHERE id=${message.authorId.toString()} RETURNING "money"`;
       const newcard = await givecard(Number(getbuttonpress.customId.split(`#`)[1]), message.authorId);
       data.money = moneyget.money;
       sendInteractionResponse(snowflakeToBigint(getbuttonpress.interaction.id), getbuttonpress.interaction.token, {

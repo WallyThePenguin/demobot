@@ -1,6 +1,6 @@
 import { Embed } from "../../utils/Embed.ts";
 import { createCommand, createDatabasePagination, createSubcommand } from "../../utils/helpers.ts";
-import { runQuery } from "../../database/client.ts";
+import { sql } from "../../database/client.ts";
 import { usercardinventory, globalcardlist } from "../../database/schemas.ts";
 //UNFINISHED, FINISH BEFORE RELEASING.
 createCommand({
@@ -29,7 +29,8 @@ createCommand({
     //Sort the rows and divide them per page.
     const getembedcount = async (): Promise<number> => {
       const count = Number(
-        (await runQuery(`SELECT COUNT(*) FROM "usercardinventory" WHERE userid = $1`, [user]))[0].count
+        (await sql<usercardinventory[]>`SELECT COUNT(*) FROM "usercardinventory" WHERE userid = ${user.toString()}`)[0]
+          .count
       );
       return Math.ceil(count / cardsperpage);
     };
@@ -45,10 +46,9 @@ createCommand({
     const getEmbed = async (embedPage: number, maxPage: number): Promise<Embed> => {
       const offset = (embedPage - 1) * cardsperpage;
       const limit = cardsperpage;
-      const data = await runQuery<usercardinventory & globalcardlist>(
-        `SELECT * FROM "usercardinventory" INNER JOIN "globalcardlist" ON "globalcardlist"."id"="usercardinventory"."id" WHERE userid = $3 ORDER BY cardnumber ASC OFFSET $1 LIMIT $2`,
-        [offset, limit, user]
-      );
+      const data = await sql<
+        (usercardinventory & globalcardlist)[]
+      >`SELECT * FROM "usercardinventory" INNER JOIN "globalcardlist" ON "globalcardlist"."id"="usercardinventory"."id" WHERE userid = ${user.toString()} ORDER BY cardnumber ASC OFFSET ${offset} LIMIT ${limit}`;
       const embed = new Embed().setTitle(`${username}\`s inventory`).setFooter(`Page ${embedPage} / ${maxPage}`);
       //deno-lint-ignore no-unused-vars
       data.forEach((card) => {
@@ -88,10 +88,9 @@ createSubcommand(`inventory`, {
     const arg = args.cardnumber;
 
     //Run a query based on the boolean
-    const [search] = await runQuery<usercardinventory & globalcardlist>(
-      `SELECT * FROM "usercardinventory" INNER JOIN "globalcardlist" ON "globalcardlist"."id"="usercardinventory"."id" WHERE cardnumber = $1`,
-      [arg]
-    );
+    const [search] = await sql<
+      (usercardinventory & globalcardlist)[]
+    >`SELECT * FROM "usercardinventory" INNER JOIN "globalcardlist" ON "globalcardlist"."id"="usercardinventory"."id" WHERE cardnumber = ${!arg}`;
     if (!search) return message.reply(`Invalid ID`);
     //Theory Below For Stat Searching.
     //const [statsearch] = await runQuery<globalcardlist>(`SELECT * FROM "globalcardlist" WHERE name = $1 and level = $2`,[search.name, search.level])

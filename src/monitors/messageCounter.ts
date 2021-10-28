@@ -1,5 +1,5 @@
 import { bot } from "../../cache.ts";
-import { runQuery } from "../database/client.ts";
+import { sql } from "../database/client.ts";
 import { GuildSchema, UserSchema } from "../database/schemas.ts";
 
 bot.monitors.set("messageCounter", {
@@ -10,22 +10,21 @@ bot.monitors.set("messageCounter", {
   ignoreDM: true,
   async execute(message) {
     //Find if Guild the monitor fired in is in my db.
-    const [guild] = await runQuery<GuildSchema>(`SELECT * FROM "GuildSchema" WHERE "guildId" = $1`, [message.guildId]);
+    const [guild] = await sql<
+      GuildSchema[]
+    >`SELECT * FROM "GuildSchema" WHERE "guildId" = ${message.guildId.toString()}`;
     if (!guild) return;
 
-    const [Usercheck] = await runQuery<UserSchema>(`SELECT * FROM "UserSchema" WHERE id = $1`, [message.authorId]);
+    const [Usercheck] = await sql<UserSchema[]>`SELECT * FROM "UserSchema" WHERE id = ${message.authorId.toString()}`;
     if (!Usercheck) {
-      await runQuery<UserSchema>(
-        `INSERT INTO "UserSchema" (id, messages) VALUES 
-        ($1, 1)`,
-        [message.authorId]
-      );
+      await sql<UserSchema[]>`INSERT INTO "UserSchema" (id, messages) VALUES 
+        (${message.authorId.toString()}, 1)`;
       return;
     }
     if (Usercheck) {
-      await runQuery<UserSchema>(`UPDATE "UserSchema" SET "messages" = "messages" + 1 WHERE "id"=$1`, [
-        message.authorId,
-      ]);
+      await sql<
+        UserSchema[]
+      >`UPDATE "UserSchema" SET "messages" = "messages" + 1 WHERE "id"=${message.authorId.toString()}`;
     }
   },
 });

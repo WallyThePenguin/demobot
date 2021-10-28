@@ -1,5 +1,20 @@
-import { Pool } from "./../../deps.ts";
-import { init } from "./database.ts";
+import { postgres } from "./../../deps.ts";
+const host = "localhost";
+const username = "postgres";
+const password = "waleed12";
+const database = "postgres";
+const port = 5432;
+export const sql = postgres({
+  hostname: host,
+  username: username,
+  password: password,
+  database: database,
+  port: port,
+  types: {
+    bigint: postgres.BigInt,
+  },
+  max: 25,
+});
 import {
   GameUserSchema,
   globalcardlist,
@@ -8,36 +23,14 @@ import {
   dailyshop,
   fightschema as _fightschema,
   deckschema,
+  chestinventoryschema,
 } from "./schemas.ts";
-const dbPool = new Pool(
-  {
-    user: "postgres",
-    password: "waleed12",
-    database: "postgres",
-    hostname: "localhost",
-    port: 5432,
-  },
-  20
-);
-
-export async function runQuery<T extends Record<string, unknown>>(
-  query: string,
-  //deno-lint-ignore no-explicit-any
-  params?: Array<any>
-): Promise<Array<T>> {
-  const client = await dbPool.connect();
-  const dbResult = await client.queryObject<T>({
-    text: query,
-    args: params,
-  });
-  client.release();
-  return dbResult.rows;
-}
+import { init } from "./database.ts";
 await init();
 
 //**Check if data exists */
 export async function gamedatacheck(user: bigint): Promise<boolean> {
-  const check = await runQuery(`SELECT 1 FROM "GameUserSchema" WHERE id = $1 LIMIT 1`, [user]);
+  const check = await sql<GameUserSchema[]>`SELECT 1 FROM "GameUserSchema" WHERE id = ${user.toString()} LIMIT 1`;
   if (check.length === 0) return false;
   else return true;
 }
@@ -66,10 +59,9 @@ interface userdata extends Record<string, unknown> {
 
 //**Look at User Stats. */
 export async function statdata(user: bigint): Promise<userdata> {
-  const [userdata] = await runQuery<GameUserSchema>(
-    `SELECT money, health, basicattack, abilitypower, speed, luck, chance, critchance, critdmgmultiplier, defense, xp FROM "GameUserSchema" WHERE id = $1 LIMIT 1`,
-    [user]
-  );
+  const [userdata] = await sql<
+    GameUserSchema[]
+  >`SELECT money, health, basicattack, abilitypower, speed, luck, chance, critchance, critdmgmultiplier, defense, xp FROM "GameUserSchema" WHERE id = ${user.toString()} LIMIT 1`;
   return userdata;
 }
 interface xplevel extends Record<string, unknown> {
@@ -92,7 +84,7 @@ export function xpforlevel(level: number) {
 
 //Convert user xp to level
 export async function checklevel(user: bigint): Promise<xplevel> {
-  const xpamount = await runQuery<GameUserSchema>(`SELECT xp FROM "GameUserSchema" WHERE id = $1`, [user]);
+  const xpamount = await sql<GameUserSchema[]>`SELECT xp FROM "GameUserSchema" WHERE id = ${user.toString()}`;
   //**Simple Reciprocal formula to get userlevel for xp. */
   const userlevel = Math.floor(xpamount[0].xp ** (5 / 9) - 10);
   return { xp: xpamount[0].xp, level: userlevel };
@@ -103,7 +95,9 @@ export async function xpchange(user: bigint, xp: number, give = true): Promise<x
   //**Checklevel Before being affected */
   const oldamount = await checklevel(user);
   //**Update the xp value to either take or gain xp */
-  await runQuery(`UPDATE "GameUserSchema" SET "xp" = "xp" ${give ? "+" : "-"} $2 WHERE id = $1`, [user, xp]);
+  await sql<GameUserSchema[]>`UPDATE "GameUserSchema" SET "xp" = "xp" ${
+    give ? "+" : "-"
+  } ${xp} WHERE id = ${user.toString()}`;
   //**Check level after being affected */
   const newamount = await checklevel(user);
   //**Log the xp change for now. */
@@ -116,12 +110,9 @@ export async function xpchange(user: bigint, xp: number, give = true): Promise<x
   const difference = Math.abs(newamount.level - oldamount.level);
   //**If the check is true, they gain or get removed statpoints. */
   if (check === true)
-    runQuery(
-      `UPDATE "GameUserSchema" SET "statpoints" = "statpoints" ${give ? "+" : "-"} $2, "totalpoints" = "totalpoints" ${
-        give ? "+" : "-"
-      } $2 WHERE id = $1`,
-      [user, difference]
-    );
+    sql<GameUserSchema[]>`UPDATE "GameUserSchema" SET "statpoints" = "statpoints" ${
+      give ? "+" : "-"
+    } ${difference}, "totalpoints" = "totalpoints" ${give ? "+" : "-"} ${difference} WHERE id = ${user.toString()}`;
   return { xp: newamount.xp, level: newamount.level, levelup: check };
 }
 
@@ -139,10 +130,9 @@ export async function cardcreate(
   magic: number
 ): Promise<globalcardlist> {
   //**Simple giving the parameters and logging into query. */
-  const [newcard] = await runQuery<globalcardlist>(
-    `INSERT INTO globalcardlist (name, level, attack, defence, speed, imagelink, description, rarity, type, magic) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
-    [name, level, attack, defence, speed, imagelink, description, rarity, type, magic]
-  );
+  const [newcard] = await sql<
+    globalcardlist[]
+  >`INSERT INTO globalcardlist (name, level, attack, defence, speed, imagelink, description, rarity, type, magic) VALUES (${name}, ${level}, ${attack}, ${defence}, ${speed}, ${imagelink}, ${description}, ${rarity}, ${type}, ${magic}) RETURNING *`;
   //**Log the Creation */
   console.log(newcard);
   //**Return the promise */
@@ -169,10 +159,9 @@ export async function enemycreate(
   description: string
 ): Promise<enemyuserschema> {
   //**Same thing as Card Create, A Bit Easier. */
-  const [newenemy] = await runQuery<enemyuserschema>(
-    `INSERT INTO enemyuserschema (name, image, type, description) VALUES ($1, $2, $3, $4) RETURNING *`,
-    [name, image, type, description]
-  );
+  const [newenemy] = await sql<
+    enemyuserschema[]
+  >`INSERT INTO enemyuserschema (name, image, type, description) VALUES (${name}, ${image}, ${type}, ${description}) RETURNING *`;
   console.log(newenemy);
   return {
     id: newenemy.id,
@@ -195,10 +184,9 @@ export async function givecard(
   isindeck = false
 ): Promise<usercardinventory> {
   //**Simply run a insert query to basically give the user the card. */
-  const [givecard] = await runQuery<usercardinventory>(
-    `INSERT INTO usercardinventory (id, userid, level, isindeck) VALUES ($1, $2, $3, $4) RETURNING *`,
-    [cardid, user, level, isindeck]
-  );
+  const [givecard] = await sql<
+    usercardinventory[]
+  >`INSERT INTO usercardinventory (id, userid, level, isindeck) VALUES (${cardid}, ${user.toString()}, ${level}, ${isindeck}) RETURNING *`;
   console.log(givecard);
   return {
     id: givecard.id,
@@ -214,7 +202,7 @@ export async function searchcard(
   //Card trying to find:
   id: number
 ): Promise<globalcardlist> {
-  const [findcard] = await runQuery<globalcardlist>(`SELECT * FROM "globalcardlist" WHERE id = $1`, [id]);
+  const [findcard] = await sql<globalcardlist[]>`SELECT * FROM "globalcardlist" WHERE id = ${id}`;
   return {
     id: findcard.id,
     name: findcard.name,
@@ -228,23 +216,21 @@ export async function searchcard(
     type: findcard.type,
   };
 }
-
+//Auto Card Scaling.
+//VVVVVVVVVVVVVVVVV
 //Scale Card To Level
 export async function autocardscale(
   //Try for card number
   cardnumber: number
 ): Promise<(globalcardlist & usercardinventory) | undefined> {
   //Look For Cards Name And Cards
-  const [checkcard] = await runQuery<usercardinventory & globalcardlist>(
-    `SELECT * FROM "usercardinventory" INNER JOIN "globalcardlist" ON "globalcardlist"."id"="usercardinventory"."id" WHERE cardnumber = $1`,
-    [cardnumber]
-  );
-
+  const [checkcard] = await sql<
+    usercardinventory[] & globalcardlist[]
+  >`SELECT * FROM "usercardinventory" INNER JOIN "globalcardlist" ON "globalcardlist"."id"="usercardinventory"."id" WHERE cardnumber = ${cardnumber}`;
   //Look For The Card By Name And Level
-  const [lookforlevelabove] = await runQuery<globalcardlist>(
-    `SELECT * FROM "globalcardlist" WHERE name = $1 and level = $2+1`,
-    [checkcard.name, checkcard.level]
-  );
+  const [lookforlevelabove] = await sql<
+    globalcardlist[]
+  >`SELECT * FROM "globalcardlist" WHERE name = ${checkcard.name} and level = ${checkcard.level}+1`;
 
   //Make the const a boolean value.
   const Needed = function newCardNeeded() {
@@ -285,10 +271,11 @@ export async function autocardscale(
           checkcard.type,
           TypeStatMath(checkcard.rarity, checkcard.magic)
         );
-        const [updateusercard] = await runQuery<usercardinventory>(
-          `UPDATE "usercardinventory" SET "id"=$2, "level"=$3 WHERE userid = $1 and cardnumber = $4 RETURNING *`,
-          [checkcard.userid, query.id, query.level, checkcard.cardnumber]
-        );
+        const [updateusercard] = await sql<
+          usercardinventory[]
+        >`UPDATE "usercardinventory" SET "id"=${query?.id!}, "level"=${query.level!} WHERE userid = ${checkcard.userid.toString()} and cardnumber = ${
+          checkcard.cardnumber
+        } RETURNING *`;
         return {
           id: updateusercard.id,
           userid: updateusercard.userid,
@@ -319,10 +306,11 @@ export async function autocardscale(
           checkcard.type,
           TypeStatMath(checkcard.rarity, checkcard.magic)
         );
-        const [updateusercard] = await runQuery<usercardinventory>(
-          `UPDATE "usercardinventory" SET "id"=$2, "level"=$3 WHERE userid = $1 and cardnumber = $4 RETURNING *`,
-          [checkcard.userid, query.id, query.level, checkcard.cardnumber]
-        );
+        const [updateusercard] = await sql<
+          usercardinventory[]
+        >`UPDATE "usercardinventory" SET "id"=${query?.id!}, "level"=${query.level!} WHERE userid = ${checkcard.userid.toString()} and cardnumber = ${
+          checkcard.cardnumber
+        } RETURNING *`;
         return {
           id: updateusercard.id,
           userid: updateusercard.userid,
@@ -353,10 +341,11 @@ export async function autocardscale(
           checkcard.type,
           TypeStatMath(checkcard.rarity, checkcard.magic)
         );
-        const [updateusercard] = await runQuery<usercardinventory>(
-          `UPDATE "usercardinventory" SET "id"=$2, "level"=$3 WHERE userid = $1 and cardnumber = $4 RETURNING *`,
-          [checkcard.userid, query.id, query.level, checkcard.cardnumber]
-        );
+        const [updateusercard] = await sql<
+          usercardinventory[]
+        >`UPDATE "usercardinventory" SET "id"=${query?.id!}, "level"=${query.level!} WHERE userid = ${checkcard.userid.toString()} and cardnumber = ${
+          checkcard.cardnumber
+        } RETURNING *`;
         return {
           id: updateusercard.id,
           userid: updateusercard.userid,
@@ -387,10 +376,11 @@ export async function autocardscale(
           checkcard.type,
           TypeStatMath(checkcard.rarity, checkcard.magic, true)
         );
-        const [updateusercard] = await runQuery<usercardinventory>(
-          `UPDATE "usercardinventory" SET "id"=$2, "level"=$3 WHERE userid = $1 and cardnumber = $4 RETURNING *`,
-          [checkcard.userid, query.id, query.level, checkcard.cardnumber]
-        );
+        const [updateusercard] = await sql<
+          usercardinventory[]
+        >`UPDATE "usercardinventory" SET "id"=${query?.id!}, "level"=${query.level!} WHERE userid = ${checkcard.userid.toString()} and cardnumber = ${
+          checkcard.cardnumber
+        } RETURNING *`;
         return {
           id: updateusercard.id,
           userid: updateusercard.userid,
@@ -411,10 +401,9 @@ export async function autocardscale(
     }
   } else {
     //If False We Just Edit the cards level and id.
-    const [editcard] = await runQuery<usercardinventory>(
-      `UPDATE "usercardinventory" SET "id"=$1,"level"="level"+1 WHERE cardnumber=$2 RETURNING *`,
-      [lookforlevelabove.id, cardnumber]
-    );
+    const [editcard] = await sql<
+      usercardinventory[]
+    >`UPDATE "usercardinventory" SET "id"=${lookforlevelabove.id!},"level"="level"+1 WHERE cardnumber=${cardnumber} RETURNING *`;
     //Return the abnoxious amount of values.
     return {
       id: editcard.id,
@@ -436,35 +425,38 @@ export async function autocardscale(
 }
 //Random Card Fix: Start giving actual random values instead of top list of queries every time.
 //Get Random Cards Based on 1-10 Rarity.
-export async function randomcardsget(rarity: number): Promise<number[] | void> {
-  const cards = await runQuery<globalcardlist>(
-    `SELECT "id" FROM (SELECT "id" FROM globalcardlist WHERE rarity=$1 and level=1) as "cards" TABLESAMPLE bernoulli(100) ORDER BY random() LIMIT $2`,
-    [rarity, 5]
-  );
+//Make Sure the Bernoulli is not 100% on public release.
+export async function randomcardsget(rarity: number, numberOfCards: number): Promise<number[] | void> {
+  const cards = await sql<
+    globalcardlist[]
+  >`SELECT "id" FROM globalcardlist WHERE rarity=${rarity} and level=1 TABLESAMPLE bernoulli(100) ORDER BY random() LIMIT ${numberOfCards}`;
+  console.log(cards);
   if (cards.length == 0) return console.log(`Error Getting Cards on Rarity: ${rarity}`);
   return cards.map((c) => c.id!);
 }
 //Reset And Startup for DailyShop, users randomcardsget.
 export async function dailyshopreset(): Promise<void> {
-  const checkshops = await runQuery<dailyshop>(`SELECT * FROM dailyshop`);
+  const checkshops = await sql<dailyshop[]>`SELECT * FROM dailyshop`;
   if (!checkshops) {
     for (let i = 1; i <= 10; i++) {
-      const card = await randomcardsget(i);
+      const card = await randomcardsget(i, 5);
       console.log(card);
-      await runQuery<dailyshop>(`INSERT INTO dailyshop (cards) VALUES ($1)`, [card]);
+      await sql<dailyshop[]>`INSERT INTO dailyshop (cards) VALUES (${card!})`;
     }
     return;
   } else {
-    await runQuery<dailyshop>(`DELETE FROM dailyshop`);
-    await runQuery<dailyshop>(`ALTER SEQUENCE dailyshop_luck_seq RESTART WITH 1`);
+    await sql<dailyshop[]>`DELETE FROM dailyshop`;
+    await sql<dailyshop[]>`ALTER SEQUENCE dailyshop_luck_seq RESTART WITH 1`;
     for (let i = 1; i <= 10; i++) {
-      const card = await randomcardsget(i);
+      const card = await randomcardsget(i, 5);
       console.log(card);
-      await runQuery<dailyshop>(`INSERT INTO dailyshop (cards) VALUES ($1)`, [card]);
+      await sql<dailyshop[]>`INSERT INTO dailyshop (cards) VALUES (${card!})`;
     }
     return;
   }
 }
+//Deck Editing
+//VVVVVVVVVVVV
 export interface deckediterror extends Record<string, unknown> {
   //**If Error is 1: "No Cardnumber listed under this id." */
   //**If Error is 2: "Too many cards in the deck to add another card." */
@@ -476,24 +468,21 @@ export async function DeckViewEdit(
   type?: "add" | "remove" | "view",
   cardnumber?: number
 ): Promise<deckschema | deckediterror> {
-  const cardsget = await runQuery<usercardinventory>(
-    `SELECT * FROM usercardinventory WHERE userid=$1 and isindeck=true`,
-    [userid]
-  );
+  const cardsget = await sql<
+    usercardinventory[]
+  >`SELECT * FROM usercardinventory WHERE userid=${userid.toString()} and isindeck=true`;
   console.log(cardsget);
   if (type !== undefined && cardnumber !== undefined) {
     switch (type) {
       case "add": {
         if (cardsget.length + 1 > 5) return { error: 2 };
         console.log("Add Ran.");
-        const deckupdate = await runQuery<usercardinventory>(
-          `UPDATE "usercardinventory" SET isindeck=true WHERE userid=$1 and cardnumber=$2 RETURNING *`,
-          [userid, cardnumber]
-        );
-        const cardsget2 = await runQuery<usercardinventory>(
-          `SELECT * FROM usercardinventory WHERE userid=$1 and isindeck=true`,
-          [userid]
-        );
+        const deckupdate = await sql<
+          usercardinventory[]
+        >`UPDATE "usercardinventory" SET isindeck=true WHERE userid=${userid.toString()} and cardnumber=${cardnumber} RETURNING *`;
+        const cardsget2 = await sql<
+          usercardinventory[]
+        >`SELECT * FROM usercardinventory WHERE userid=${userid.toString()} and isindeck=true`;
         if (deckupdate.length === 0) return { error: 1 };
         return {
           userid: userid,
@@ -506,15 +495,13 @@ export async function DeckViewEdit(
       }
       case "remove": {
         if (cardsget.length === 0) return { error: 3 };
-        const deckupdate = await runQuery<usercardinventory>(
-          `UPDATE "usercardinventory" SET isindeck=false WHERE userid=$1 and cardnumber=$2 RETURNING *`,
-          [userid, cardnumber]
-        );
+        const deckupdate = await sql<
+          usercardinventory[]
+        >`UPDATE "usercardinventory" SET isindeck=false WHERE userid=${userid.toString()} and cardnumber=${cardnumber} RETURNING *`;
         if (deckupdate.length === 0) return { error: 1 };
-        const cardsget2 = await runQuery<usercardinventory>(
-          `SELECT * FROM usercardinventory WHERE userid=$1 and isindeck=true`,
-          [userid]
-        );
+        const cardsget2 = await sql<
+          usercardinventory[]
+        >`SELECT * FROM usercardinventory WHERE userid=${userid.toString()} and isindeck=true`;
         if (deckupdate.length === 0) return { error: 1 };
         return {
           userid: userid,
@@ -544,4 +531,83 @@ export async function DeckViewEdit(
       card4: cardsget?.[3]?.cardnumber || null,
       card5: cardsget?.[4]?.cardnumber || null,
     };
+}
+//Chest Based-Functions Here.
+//VVVVVVVVVVVVVVVVVVVVVVVVVV
+
+//Give a User a Chest.
+export async function givechest(userid: bigint, chestlevel: number): Promise<chestinventoryschema> {
+  const [chest] = await sql<
+    chestinventoryschema[]
+  >`INSERT INTO userchestinventory (userid, chestlevel) VALUES (${userid.toString()},${chestlevel}) RETURNING *`;
+  return {
+    chestid: chest.chestid,
+    chestlevel: chest.chestlevel,
+    userid: userid,
+  };
+}
+//How Chests Drops Work:
+// Type of Chest  || Level of Card Drops.
+//Common (level 1): level 1, rarely level 2, 3 very rare
+//Uncommon (level 2): Level 2, Rarely Level 3, 4 very rare
+//Rare (level 3): Level 3, Rarely Level 4, level 5 very rare
+//So far so forth you know how it works.
+//Until Levels 8, 9, 10, they are all mixed in chest 7, making it harder to scale.
+
+//Card Drops From Chest
+export async function chestdrop(chestid: number, userid: bigint): Promise<usercardinventory> {
+  const [getChest] = await sql<chestinventoryschema[]>`SELECT * FROM userchestinventory WHERE chestid = ${chestid}`;
+  //Card Drop Randomization
+  //Choose the Rarity Of what drops from the Chest.
+  if (7 > getChest.chestlevel) {
+    const min = getChest.chestlevel;
+    const max = getChest.chestlevel + 2;
+    const bias = getChest.chestlevel;
+    const influence = 1;
+    const rnd = Math.round(Math.random()) * (max - min) + min;
+    const mix = Math.round(Math.random()) * influence;
+    const rarity = rnd * (1 - mix) + bias * mix;
+    console.log("THE RARITY IS..." + rarity);
+    const randomizedCard = await randomcardsget(rarity, 1);
+    console.log(randomizedCard, rarity);
+    //Delete the Chest.
+    await sql<chestinventoryschema[]>`DELETE FROM "userchestinventory" WHERE chestid=${chestid}`;
+    //Give the Card
+    const [giveCard] = await sql<
+      usercardinventory[]
+    >`INSERT INTO usercardinventory (id, userid, level, isindeck) VALUES (${!randomizedCard}, ${userid.toString()}, 1, false) RETURNING *`;
+    //Return Card Values
+    return {
+      id: giveCard.id,
+      isindeck: giveCard.isindeck,
+      userid: giveCard.userid,
+      level: giveCard.level,
+      cardnumber: giveCard.cardnumber,
+    };
+  } else {
+    const min = 7;
+    const max = 10;
+    const bias = 7;
+    const influence = 1;
+    const rnd = Math.round(Math.random()) * (max - min) + min;
+    const mix = Math.round(Math.random()) * influence;
+    const rarity = rnd * (1 - mix) + bias * mix;
+    const randomizedCard = await randomcardsget(rarity, 1);
+    console.log(randomizedCard, rarity);
+    //Delete the Chest.
+    await sql<chestinventoryschema[]>`DELETE FROM "userchestinventory" WHERE chestid=${chestid}`;
+    //Give the Card
+    const [giveCard] = await sql<
+      usercardinventory[]
+    >`INSERT INTO usercardinventory (id, userid, level, isindeck) VALUES (${!randomizedCard}, ${userid.toString()}, 1, false) RETURNING *`;
+    //Return Card Values
+    return {
+      id: giveCard.id,
+      isindeck: giveCard.isindeck,
+      userid: giveCard.userid,
+      level: giveCard.level,
+      cardnumber: giveCard.cardnumber,
+    };
+    //Card Creation.
+  }
 }

@@ -32,7 +32,7 @@ import { needButton, needMessage, needReaction } from "./collectors.ts";
 import { Milliseconds } from "./constants/time.ts";
 import { Embed } from "./Embed.ts";
 import { log } from "./logger.ts";
-import { usercardinventory, globalcardlist } from "../database/schemas.ts";
+import { usercardinventory, globalcardlist, chestinventoryschema } from "../database/schemas.ts";
 /** This function should be used when you want to convert milliseconds to a human readable format like 1d5h. */
 export function humanizeMilliseconds(milliseconds: number) {
   // Gets ms into seconds
@@ -990,4 +990,118 @@ export type emoji =
 
 export interface addableSelectMenuOption extends Omit<SelectOption, "default"> {
   default?: boolean;
+}
+interface customPaginationSchemaChests extends Record<string, unknown> {
+  messageId: bigint;
+  QueryObject: chestinventoryschema[];
+}
+export async function createCustomDataPaginationChests(
+  message: DiscordenoMessage,
+  getEmbedCount: () => Promise<number>,
+  getNoneEmbed: () => Promise<Embed | undefined>,
+  getEmbed: (embedPage: number, max_page: number) => Promise<Embed>,
+  getQuery: (embedPage: number, max_page: number) => Promise<chestinventoryschema[]>,
+  page = 1
+): Promise<customPaginationSchemaChests | void> {
+  const embedCount = Number(await getEmbedCount());
+
+  if (embedCount === 0) {
+    const noneEmbed = await getNoneEmbed();
+    if (noneEmbed) {
+      await sendEmbed(message.channelId, noneEmbed);
+    }
+    return;
+  }
+  if (page > embedCount) {
+    return;
+  }
+
+  const createComponents = async (): Promise<MessageComponents> => [
+    {
+      type: DiscordMessageComponentTypes.ActionRow,
+      components: [
+        {
+          type: DiscordMessageComponentTypes.Button,
+          label: "Previous",
+          customId: `${message.id}-Previous`,
+          style: DiscordButtonStyles.Primary,
+          disabled: currentPage === 1,
+        },
+        {
+          type: DiscordMessageComponentTypes.Button,
+          label: "Next",
+          customId: `${message.id}-Next`,
+          style: DiscordButtonStyles.Primary,
+          disabled: currentPage >= (await getEmbedCount()),
+        },
+        {
+          type: DiscordMessageComponentTypes.Button,
+          label: `Select`,
+          customId: `${message.id}-Select`,
+          style: DiscordButtonStyles.Primary,
+        },
+      ],
+    },
+  ];
+
+  const { channelId } = message;
+  let currentPage = page;
+  const currentEmbed = await getEmbed(currentPage, embedCount);
+  const currentData = await getQuery(currentPage, embedCount);
+  //deno-lint-ignore prefer-const
+  let currentEmbedMessage: DiscordenoMessage | void = await sendMessage(channelId, {
+    embed: currentEmbed,
+    components: await createComponents(),
+  });
+
+  if (!currentEmbedMessage || embedCount === 1) {
+    return { messageId: currentEmbedMessage.id, QueryObject: currentData };
+  }
+
+  while (true) {
+    if (!currentEmbedMessage) {
+      return;
+    }
+    const collectedButton = await needButton(message.authorId, message.id, {
+      duration: 30 * 1000,
+    }).catch(log.error);
+
+    if (!collectedButton || !collectedButton.customId.startsWith(message.id.toString())) {
+      return { messageId: currentEmbedMessage.id, QueryObject: currentData };
+    }
+
+    const action = collectedButton.customId.split("-")[1];
+
+    switch (action) {
+      case "Next":
+        currentPage++;
+        break;
+      case "Select":
+        console.log("Button Pressed, Data Probably Sent.");
+        return { messageId: currentEmbedMessage.id, QueryObject: currentData };
+      case "Previous":
+        currentPage--;
+        break;
+    }
+
+    if (currentPage < 1) {
+      currentPage = 1;
+    }
+
+    if (currentPage > embedCount) {
+      currentPage = embedCount;
+    }
+
+    await sendInteractionResponse(
+      snowflakeToBigint(collectedButton.interaction.id),
+      collectedButton.interaction.token,
+      {
+        type: 7,
+        data: {
+          embeds: [await getEmbed(currentPage, embedCount)],
+          components: await createComponents(),
+        },
+      }
+    ).catch(log.error);
+  }
 }

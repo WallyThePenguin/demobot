@@ -1,16 +1,8 @@
 import { Milliseconds } from "../utils/constants/time.ts";
-import {
-  cache,
-  sendMessage,
-  addReactions,
-  delay,
-  getMember,
-  snowflakeToBigint,
-  bigintToSnowflake,
-} from "../../deps.ts";
+import { cache, sendMessage, addReactions, delay, getMember, snowflakeToBigint } from "../../deps.ts";
 import { bot } from "../../cache.ts";
 import { Embed } from "../utils/Embed.ts";
-import { runQuery } from "../database/client.ts";
+import { sql } from "../database/client.ts";
 import { sendEmbed } from "../utils/helpers.ts";
 import { messages } from "../events/message_create.ts";
 import { VoteSchema, GuildSchema, UserSchema } from "../database/schemas.ts";
@@ -36,7 +28,7 @@ bot.tasks.set(`polls`, {
       "\u0039\u20E3",
     ];
     //Get all guilds from the database.
-    const allguilds = await runQuery<GuildSchema>(`SELECT * FROM "GuildSchema"`);
+    const allguilds = await sql<GuildSchema[]>`SELECT * FROM "GuildSchema"`;
     const today = new Date();
     const friday = new Date(today.getTime());
     friday.setDate(today.getDate() + ((7 + 5 - today.getDay()) % 7));
@@ -46,15 +38,12 @@ bot.tasks.set(`polls`, {
     if (poo === 1) {
       console.log("TASK LAUNCHED------------------------------");
       //Get all Users from the Message counter DB
-      const userdb = await runQuery<UserSchema>(`SELECT * FROM "UserSchema" ORDER BY messages DESC`);
+      const userdb = await sql<UserSchema[]>`SELECT * FROM "UserSchema" ORDER BY messages DESC`;
       //Create a Vote DB that has votes with corresponding candidates.
-      await runQuery<VoteSchema>(
-        `INSERT INTO "VoteSchema" (id, vote,"numID") VALUES 
-        ( $1, 0, 1), 
-        ( $2, 0, 2), 
-        ( $3, 0, 3)`,
-        [userdb[0].id, userdb[1].id, userdb[2].id]
-      );
+      await sql<VoteSchema[]>`INSERT INTO "VoteSchema" (id, vote,"numID") VALUES 
+        ( ${userdb[0].id.toString()}, 0, 1), 
+        ( ${userdb[1].id.toString()}, 0, 2), 
+        ( ${userdb[2].id.toString()}, 0, 3)`;
       const embed = new Embed()
         .addField("Candidate 1", `<@${userdb[0].id}> :one: With ${userdb[0].messages} Messages!`)
         .addField("Candidate 2", `<@${userdb[1].id}> :two: With ${userdb[1].messages} Messages!`)
@@ -70,7 +59,7 @@ bot.tasks.set(`polls`, {
       //Wait one minute for vote process. (for now)
       await delay(6000);
       //get the vote DB, then sort the votes by most votes, getting the winner.
-      const winner = await runQuery<VoteSchema>(`SELECT * FROM "VoteSchema" ORDER BY vote DESC`);
+      const winner = await sql<VoteSchema[]>`SELECT * FROM "VoteSchema" ORDER BY vote DESC`;
       console.log(winner[0].id, winner[0].vote);
       //Remove Old Leader
       for (const guild of allguilds) {
@@ -101,20 +90,18 @@ bot.tasks.set(`polls`, {
           const test = await getMember(guild.guildId, winner[0].id);
           if (!test) return;
           test.addRole(guild.guildId, role);
-          runQuery<GuildSchema>(`UPDATE "GuildSchema" SET leaderid = $1 WHERE "guildId" = $2`, [
-            bigintToSnowflake(winner[0].id),
-            guild.guildId,
-          ]);
+          sql<
+            GuildSchema[]
+          >`UPDATE "GuildSchema" SET leaderid = ${winner[0].id.toString()} WHERE "guildId" = ${guild.guildId.toString()}`;
           return;
         }
         const addrole = leader?.addRole(guild.guildId, role);
         if (!addrole) {
           console.log(`${winner[1].id} Not in server ${g?.id}`);
         }
-        runQuery<GuildSchema>(`UPDATE "GuildSchema" SET leaderid = $1 WHERE "guildId" = $2`, [
-          bigintToSnowflake(winner[0].id),
-          guild.guildId,
-        ]);
+        sql<
+          GuildSchema[]
+        >`UPDATE "GuildSchema" SET leaderid = ${winner[0].id.toString()} WHERE "guildId" = ${guild.guildId.toString()}`;
         continue;
       }
       //Announce the new leader to all servers.
@@ -125,9 +112,9 @@ bot.tasks.set(`polls`, {
         sendEmbed(snowflakeToBigint(g), embed);
       }
       //After the voting system has finished, just delete the whole userdb.
-      runQuery<UserSchema>(`TRUNCATE TABLE "UserSchema"`);
+      sql<UserSchema[]>`TRUNCATE TABLE "UserSchema"`;
       //Same thing with votes db.
-      runQuery<VoteSchema>(`TRUNCATE TABLE "VoteSchema"`);
+      sql<VoteSchema[]>`TRUNCATE TABLE "VoteSchema"`;
       //Delete messages Cache.
       messages.clear();
       return;

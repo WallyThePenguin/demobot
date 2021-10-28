@@ -11,7 +11,7 @@ import {
 import { bot } from "../../cache.ts";
 import { fetchMember } from "../utils/helpers.ts";
 export const messages = new Map<string, DiscordenoMessage>();
-import { runQuery } from "../database/client.ts";
+import { sql } from "../database/client.ts";
 import { GuildSchema } from "../database/schemas.ts";
 // deno-lint-ignore require-await
 bot.eventHandlers.messageCreate = async function (message) {
@@ -21,7 +21,7 @@ bot.eventHandlers.messageCreate = async function (message) {
 async function messagecacher(message: DiscordenoMessage) {
   const guildid = message.guildId;
   //Check if the guild is in db,
-  const guildInfo = await runQuery<GuildSchema>(`select * from "GuildSchema" where "guildId" = $1`, [guildid]);
+  const guildInfo = await sql<GuildSchema[]>`select * from "GuildSchema" where "guildId" = ${guildid.toString()}`;
   //If not just end the whole code.
   if (guildInfo.length === 0) return;
   //If true, check the db for pollsid then and cache it.

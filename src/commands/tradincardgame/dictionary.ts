@@ -1,6 +1,6 @@
 import { createCommand, createSubcommand, createDatabasePagination } from "../../utils/helpers.ts";
 import { Embed } from "../../utils/Embed.ts";
-import { runQuery } from "../../database/client.ts";
+import { sql } from "../../database/client.ts";
 import { globalcardlist } from "../../database/schemas.ts";
 createCommand({
   name: `dictionary`,
@@ -27,7 +27,7 @@ createSubcommand(`dictionary`, {
 
     //Sort the rows and divide them per page.
     const getembedcount = async (): Promise<number> => {
-      const count = Number((await runQuery(`SELECT COUNT(*) FROM "globalcardlist" WHERE level=1`))[0].count);
+      const count = Number((await sql<globalcardlist[]>`SELECT COUNT(*) FROM "globalcardlist" WHERE level=1`)[0].count);
       return Math.ceil(count / cardsperpage);
     };
     //If theres nothing in the embed just return.
@@ -42,10 +42,9 @@ createSubcommand(`dictionary`, {
     const getEmbed = async (embedPage: number, maxPage: number): Promise<Embed> => {
       const offset = (embedPage - 1) * cardsperpage;
       const limit = cardsperpage;
-      const data = await runQuery<globalcardlist>(
-        `SELECT * FROM "globalcardlist" WHERE level=1 ORDER BY id ASC OFFSET $1 LIMIT $2`,
-        [offset, limit]
-      );
+      const data = await sql<
+        globalcardlist[]
+      >`SELECT * FROM "globalcardlist" WHERE level=1 ORDER BY id ASC OFFSET ${offset} LIMIT ${limit}`;
       const embed = new Embed().setTitle("Dictionary List").setFooter(`Page ${embedPage} / ${maxPage}`);
       //deno-lint-ignore no-unused-vars
       data.forEach((card) => {
@@ -120,14 +119,13 @@ createSubcommand(`dictionary`, {
 
     //Run a query based on the number boolean, if the argument is a number return the id search query, if it is a string return the name query.
     if (number) {
-      const [search] = await runQuery<globalcardlist>(`SELECT * FROM "globalcardlist" WHERE id=$1`, [arg]);
+      const [search] = await sql<globalcardlist[]>`SELECT * FROM "globalcardlist" WHERE id=${!arg}`;
       if (!search) return message.reply(`Invalid ID`);
       message.reply({ embeds: [newembed(search)] });
     } else {
-      const [search] = await runQuery<globalcardlist>(
-        `SELECT * FROM "globalcardlist" WHERE lower(name)=lower($1) and level=$2`,
-        [arg, wantedlevel]
-      );
+      const [search] = await sql<
+        globalcardlist[]
+      >`SELECT * FROM "globalcardlist" WHERE lower(name)=lower(${!arg}) and level=${wantedlevel}`;
       if (!search) message.reply(`Invalid Name/Level`);
       message.reply({ embeds: [newembed(search)] });
     }

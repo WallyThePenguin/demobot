@@ -2,7 +2,7 @@ import { Embed } from "../../utils/Embed.ts";
 import { Components } from "../../utils/components.ts";
 import { needButton } from "../../utils/collectors.ts";
 import { createCommand } from "../../utils/helpers.ts";
-import { runQuery, gamedatacheck } from "../../database/client.ts";
+import { sql, gamedatacheck } from "../../database/client.ts";
 import {
   sendInteractionResponse,
   snowflakeToBigint,
@@ -24,7 +24,6 @@ createCommand({
       return message.reply(
         `You already have been through the tutorial already! If you would like to go through it again, say \`!tutorial\``
       );
-    const defaultstatquery = `INSERT INTO "GameUserSchema" (id, money, health, basicattack, abilitypower, speed, luck, chance, critchance, critdmgmultiplier, defense, xp, statpoints, totalpoints) VALUES ($1, ${configs.defaultstats.money}, ${configs.defaultstats.health}, ${configs.defaultstats.basicattack}, ${configs.defaultstats.abilitypower}, ${configs.defaultstats.speed}, ${configs.defaultstats.luck}, ${configs.defaultstats.chance}, ${configs.defaultstats.critchance}, ${configs.defaultstats.critdmgmultiplier}, ${configs.defaultstats.defence}, ${configs.defaultstats.xp}, ${configs.defaultstats.statpoints}, ${configs.defaultstats.totalpoints})`;
     //**embed one will be the prompting an option */
     const embed1 = new Embed()
       .setAuthor(`${message.guild?.botMember?.nick || message.guild?.bot?.tag}`, message.guild?.bot?.avatarURL)
@@ -58,7 +57,17 @@ createCommand({
     switch (buttonreply.customId) {
       case "1":
         {
-          await runQuery<GameUserSchema>(defaultstatquery, [message.authorId]);
+          await sql<
+            GameUserSchema[]
+          >`INSERT INTO "GameUserSchema" (id, money, health, basicattack, abilitypower, speed, luck, chance, critchance, critdmgmultiplier, defense, xp, statpoints, totalpoints) VALUES (${message.authorId.toString()}, ${
+            configs.defaultstats.money
+          }, ${configs.defaultstats.health}, ${configs.defaultstats.basicattack}, ${
+            configs.defaultstats.abilitypower
+          }, ${configs.defaultstats.speed}, ${configs.defaultstats.luck}, ${configs.defaultstats.chance}, ${
+            configs.defaultstats.critchance
+          }, ${configs.defaultstats.critdmgmultiplier}, ${configs.defaultstats.defence}, ${configs.defaultstats.xp}, ${
+            configs.defaultstats.statpoints
+          }, ${configs.defaultstats.totalpoints})`;
           sendInteractionResponse(snowflakeToBigint(buttonreply.interaction.id), buttonreply.interaction.token, {
             type: DiscordInteractionResponseTypes.UpdateMessage,
             data: {
@@ -72,7 +81,17 @@ createCommand({
 
       case "2":
         {
-          runQuery<GameUserSchema>(defaultstatquery, [message.authorId, false]);
+          sql<
+            GameUserSchema[]
+          >`INSERT INTO "GameUserSchema" (id, money, health, basicattack, abilitypower, speed, luck, chance, critchance, critdmgmultiplier, defense, xp, statpoints, totalpoints) VALUES (${message.authorId.toString()}, ${
+            configs.defaultstats.money
+          }, ${configs.defaultstats.health}, ${configs.defaultstats.basicattack}, ${
+            configs.defaultstats.abilitypower
+          }, ${configs.defaultstats.speed}, ${configs.defaultstats.luck}, ${configs.defaultstats.chance}, ${
+            configs.defaultstats.critchance
+          }, ${configs.defaultstats.critdmgmultiplier}, ${configs.defaultstats.defence}, ${configs.defaultstats.xp}, ${
+            configs.defaultstats.statpoints
+          }, ${configs.defaultstats.totalpoints})`;
           //Need const here to edit again
           await sendInteractionResponse(snowflakeToBigint(buttonreply.interaction.id), buttonreply.interaction.token, {
             type: DiscordInteractionResponseTypes.UpdateMessage,

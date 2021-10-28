@@ -1,6 +1,6 @@
 import { createCommand, createCustomDataPagination } from "../../utils/helpers.ts";
 import { Embed } from "../../utils/Embed.ts";
-import { runQuery, autocardscale } from "../../database/client.ts";
+import { sql, autocardscale } from "../../database/client.ts";
 import { globalcardlist, usercardinventory } from "../../database/schemas.ts";
 import { needButton, isSelectmenu, needComponentFromOneUser } from "../../utils/collectors.ts";
 import { sendInteractionResponse, snowflakeToBigint, DiscordInteractionResponseTypes } from "../../../deps.ts";
@@ -9,21 +9,19 @@ import { SelectMenu } from "../../utils/components.ts";
 createCommand({
   name: `cardfusion`,
   aliases: [`cf`, `fuse`],
-  description: `Users are able to list every card in the game, they can also view a card with this.`,
+  description: `Combine Cards you get with this command.`,
   guildOnly: true,
   execute: async (message) => {
     //number of cards per page.
     const cardsperpage = 15;
-
     //Sort the rows and divide them per page.
     const getembedcount = async (): Promise<number> => {
       const count = Number(
         (
-          await runQuery(
-            `SELECT COUNT(*) FROM (SELECT id, Count(1) over (partition BY id) AS occurs FROM usercardinventory WHERE userid= $1) as test where occurs > 1`,
-            [message.authorId]
-          )
-        )[0].count
+          await sql<
+            usercardinventory[]
+          >`SELECT COUNT(*) FROM (SELECT id, Count(1) over (partition BY id) AS occurs FROM usercardinventory WHERE userid= ${message.authorId.toString()}) as test where occurs > 1`
+        ).count
       );
       return Math.ceil(count / cardsperpage);
     };
@@ -39,10 +37,9 @@ createCommand({
     const getEmbed = async (embedPage: number, maxPage: number): Promise<Embed> => {
       const offset = (embedPage - 1) * cardsperpage;
       const limit = cardsperpage;
-      const data = await runQuery<usercardinventory & globalcardlist>(
-        `SELECT DISTINCT ON ("usercardinventory"."id") * FROM "usercardinventory" INNER JOIN "globalcardlist" ON "globalcardlist"."id"="usercardinventory"."id" where (SELECT count(*) FROM "usercardinventory" uci WHERE uci.id="usercardinventory"."id") > 1 AND "userid"=$1 OFFSET $2 LIMIT $3`,
-        [message.authorId, offset, limit]
-      );
+      const data = await sql<
+        usercardinventory[] & globalcardlist[]
+      >`SELECT DISTINCT ON ("usercardinventory"."id") * FROM "usercardinventory" INNER JOIN "globalcardlist" ON "globalcardlist"."id"="usercardinventory"."id" where (SELECT count(*) FROM "usercardinventory" uci WHERE uci.id="usercardinventory"."id") > 1 AND "userid"=${message.authorId.toString()} OFFSET ${offset} LIMIT ${limit}`;
       const embed = new Embed().setTitle("Cards You Can Combine.").setFooter(`Page ${embedPage} / ${maxPage}`);
       //deno-lint-ignore no-unused-vars
       data.forEach((card) => {
@@ -67,10 +64,9 @@ createCommand({
     const getQuery = async (embedPage: number): Promise<(usercardinventory & globalcardlist)[]> => {
       const offset = (embedPage - 1) * cardsperpage;
       const limit = cardsperpage;
-      const data = await runQuery<usercardinventory & globalcardlist>(
-        `SELECT DISTINCT ON ("usercardinventory"."id") * FROM "usercardinventory" INNER JOIN "globalcardlist" ON "globalcardlist"."id"="usercardinventory"."id" where (SELECT count(*) FROM "usercardinventory" uci WHERE uci.id="usercardinventory"."id") > 1 AND "userid"=$1 OFFSET $2 LIMIT $3`,
-        [message.authorId, offset, limit]
-      );
+      const data = await sql<
+        (usercardinventory & globalcardlist)[]
+      >`SELECT DISTINCT ON ("usercardinventory"."id") * FROM "usercardinventory" INNER JOIN "globalcardlist" ON "globalcardlist"."id"="usercardinventory"."id" where (SELECT count(*) FROM "usercardinventory" uci WHERE uci.id="usercardinventory"."id") > 1 AND "userid"=${message.authorId.toString()} OFFSET ${offset} LIMIT ${limit}`;
       return data;
     };
     //HERES THE PAGINATOR FUNCTION
@@ -108,14 +104,11 @@ createCommand({
       if (selectmenu.customId === `1`) {
         const [card] = cardselected.selectedValues;
         const cardid = Number(card);
-        const [firstcard, secondcard] = await runQuery<usercardinventory>(
-          `SELECT * FROM "usercardinventory" WHERE userid=$1 and id=$2 ORDER BY cardnumber ASC`,
-          [message.authorId, cardid]
-        );
+        const [firstcard, secondcard] = await sql<
+          usercardinventory[]
+        >`SELECT * FROM "usercardinventory" WHERE userid=${message.authorId.toString()} and id=${cardid} ORDER BY cardnumber ASC`;
         const updatedcard = await autocardscale(firstcard.cardnumber);
-        await runQuery<usercardinventory>(`DELETE FROM "usercardinventory" WHERE cardnumber=$1`, [
-          secondcard.cardnumber,
-        ]);
+        await sql<usercardinventory[]>`DELETE FROM "usercardinventory" WHERE cardnumber=${secondcard.cardnumber}`;
         const successembed = new Embed()
           .setTitle(`Card Fusion Complete!`)
           .addField(`Card Upgraded,`, `**${updatedcard?.name}#${updatedcard?.cardnumber}**`)

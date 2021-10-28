@@ -1,17 +1,10 @@
-import {
-  createGuildFromTemplate,
-  delay,
-  addReaction,
-  cache,
-  sendMessage,
-  createInvite,
-  bigintToSnowflake,
-} from "../../../deps.ts";
+import { createGuildFromTemplate, delay, addReaction, cache, sendMessage, createInvite } from "../../../deps.ts";
 import { PermissionLevels } from "../.././types/commands.ts";
 import { Embed } from "../../utils/Embed.ts";
 import { sendEmbed, createCommand } from "../../utils/helpers.ts";
 import { setupRules, imagerules, vcrules, pollinghelp } from "../../../conflist.ts";
-import { runQuery } from "../../database/client.ts";
+import { sql } from "../../database/client.ts";
+import { GuildSchema } from "../../database/schemas.ts";
 createCommand({
   name: "setup",
   dmOnly: false,
@@ -66,11 +59,8 @@ createCommand({
     if (!polls) return sendMessage(message.channelId, "Error Getting Embed Promises for polls.");
 
     // Add the message.id to rulesid and polls channelid in guildschema.
-    await runQuery(
-      `INSERT INTO "GuildSchema" ("guildId", rulesid, pollsid)
-    VALUES($1, $2, $3)`,
-      [fullGuild.id, bigintToSnowflake(rules.id), bigintToSnowflake(polls.channelId)]
-    );
+    await sql<GuildSchema[]>`INSERT INTO "GuildSchema" ("guildId", rulesid, pollsid)
+    VALUES(${fullGuild.id.toString()}, ${rules.id.toString()}, ${polls.channelId.toString()})`;
 
     //Creating a permanent invite when all of this has been done.
     const inv = await createInvite(chanid, {

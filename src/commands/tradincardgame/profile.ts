@@ -1,6 +1,6 @@
 import { Embed } from "../../utils/Embed.ts";
 import { createCommand } from "../../utils/helpers.ts";
-import { runQuery, gamedatacheck, checklevel } from "../../database/client.ts";
+import { sql, gamedatacheck, checklevel } from "../../database/client.ts";
 import { GameUserSchema } from "../../database/schemas.ts";
 createCommand({
   name: `profile`,
@@ -24,7 +24,9 @@ createCommand({
         `${member.mention} Is not in the database, have them start playing the game by saying \`!gs\`!`
       );
     //**Get the stats of the user */
-    const [stats] = await runQuery<GameUserSchema>(`SELECT * FROM "GameUserSchema" WHERE id = $1 LIMIT 1`, [member.id]);
+    const [stats] = await sql<
+      GameUserSchema[]
+    >`SELECT * FROM "GameUserSchema" WHERE id = ${member.id.toString()} LIMIT 1`;
     const level = await checklevel(member.id);
     //**Make an embed with the db stats and send. */
     const statembed = new Embed()
