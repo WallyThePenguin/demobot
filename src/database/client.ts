@@ -613,3 +613,48 @@ export async function chestdrop(chestid: number, userid: bigint): Promise<userca
     //Card Creation.
   }
 }
+//Campaign Drop Example:
+export const arraytest = [
+  "chest-1",
+  "card-2",
+  "chest-3",
+  "card-4",
+  "chest-5",
+  "card-6",
+  "chest-7",
+  "card-8",
+  "card-9",
+  "card-10",
+];
+//Campaign Drops: Will Make a File With several arrays for campaign drops This is similar technique to chestdrop, only I can choose between Dropping chests or an actual card.
+export async function campaigndrop(
+  userid: bigint,
+  array: Array<string>
+): Promise<chestinventoryschema | usercardinventory | void> {
+  const min = 1;
+  const max = array.length;
+  const bias = 1;
+  const influence = 1;
+  const rnd = Math.round(Math.random()) * (max - min) + min;
+  const mix = Math.round(Math.random()) * influence;
+  const item = rnd * (1 - mix) + bias * mix;
+  const arrayItem = array[item].split(`-`)[0];
+  const arrayItemId = Number(array[item].split(`-`)[1]);
+  if (arrayItem === "chest") {
+    const chestgiven = await givechest(userid, arrayItemId);
+    return {
+      chestid: chestgiven.chestid,
+      chestlevel: chestgiven.chestlevel,
+      userid: userid,
+    };
+  } else {
+    const cardgiven = await givecard(arrayItemId, userid);
+    return {
+      id: cardgiven.id,
+      cardnumber: cardgiven.cardnumber,
+      userid: cardgiven.userid,
+      level: cardgiven.level,
+      isindeck: cardgiven.isindeck,
+    };
+  }
+}
