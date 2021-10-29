@@ -630,7 +630,7 @@ export const arraytest = [
 export async function campaigndrop(
   userid: bigint,
   array: Array<string>
-): Promise<chestinventoryschema | usercardinventory | void> {
+): Promise<chestinventoryschema | usercardinventory> {
   const min = 1;
   const max = array.length;
   const bias = 1;
