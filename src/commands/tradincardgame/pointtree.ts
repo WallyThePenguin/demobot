@@ -54,7 +54,7 @@ createCommand({
         {
           const [valuechange] = await sql<
             GameUserSchema[]
-          >`UPDATE "GameUserSchema" SET "health"="health"+1, "statpoints"="statpoints"-1 WHERE id = ${message.authorId.toString()} and "statpoints" > 0 RETURNING "health", "statpoints"`;
+          >`UPDATE "GameUserSchema" SET "health"="health"+5, "statpoints"="statpoints"-1 WHERE id = ${message.authorId.toString()} and "statpoints" > 0 RETURNING "health", "statpoints"`;
           if (!valuechange) return message.reply(`You do not have anymore StatPoints!`);
           data.health = valuechange.health;
           data.statpoints = valuechange.statpoints;
@@ -71,7 +71,7 @@ createCommand({
         {
           const [valuechange] = await sql<
             GameUserSchema[]
-          >`UPDATE "GameUserSchema" SET "defense"="defense"+1, "statpoints"="statpoints"-1 WHERE id = ${message.authorId.toString()} and "statpoints" > 0 RETURNING "defense", "statpoints"`;
+          >`UPDATE "GameUserSchema" SET "defense"="defense"+5, "statpoints"="statpoints"-1 WHERE id = ${message.authorId.toString()} and "statpoints" > 0 RETURNING "defense", "statpoints"`;
           if (!valuechange) return message.reply(`You do not have anymore StatPoints!`);
           data.defense = valuechange.defense;
           data.statpoints = valuechange.statpoints;
@@ -88,7 +88,7 @@ createCommand({
         {
           const [valuechange] = await sql<
             GameUserSchema[]
-          >`UPDATE "GameUserSchema" SET "attack"="attack"+1, "statpoints"="statpoints"-1 WHERE id = ${message.authorId.toString()} and "statpoints" > 0 RETURNING "attack", "statpoints"`;
+          >`UPDATE "GameUserSchema" SET "attack"="attack"+5, "statpoints"="statpoints"-1 WHERE id = ${message.authorId.toString()} and "statpoints" > 0 RETURNING "attack", "statpoints"`;
           if (!valuechange) return message.reply(`You do not have anymore StatPoints!`);
           data.attack = valuechange.attack;
           data.statpoints = valuechange.statpoints;
@@ -105,7 +105,7 @@ createCommand({
         {
           const [valuechange] = await sql<
             GameUserSchema[]
-          >`UPDATE "GameUserSchema" SET "speed"="speed"+1, "statpoints"="statpoints"-1 WHERE id = ${message.authorId.toString()} and "statpoints" > 0 RETURNING "speed", "statpoints"`;
+          >`UPDATE "GameUserSchema" SET "speed"="speed"+5, "statpoints"="statpoints"-1 WHERE id = ${message.authorId.toString()} and "statpoints" > 0 RETURNING "speed", "statpoints"`;
           if (!valuechange) return message.reply(`You do not have anymore StatPoints!`);
           data.speed = valuechange.speed;
           data.statpoints = valuechange.statpoints;
@@ -140,7 +140,7 @@ createCommand({
           {
             const [valuechange] = await sql<
               GameUserSchema[]
-            >`UPDATE "GameUserSchema" SET "abilitypower"="abilitypower"+1, "statpoints"="statpoints"-1 WHERE id = ${message.authorId.toString()} and "statpoints" > 0 RETURNING "abilitypower", "statpoints"`;
+            >`UPDATE "GameUserSchema" SET "abilitypower"="abilitypower"+5, "statpoints"="statpoints"-1 WHERE id = ${message.authorId.toString()} and "statpoints" > 0 RETURNING "abilitypower", "statpoints"`;
             if (!valuechange) return message.reply(`You do not have anymore StatPoints!`);
             data.abilitypower = valuechange.abilitypower;
             data.statpoints = valuechange.statpoints;
