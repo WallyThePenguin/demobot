@@ -20,8 +20,11 @@ createCommand({
     //deno-lint-ignore prefer-const
     let [data] = await sql<GameUserSchema[]>`SELECT * FROM "GameUserSchema" WHERE id=${message.authorId.toString()}`;
     //Gotta Get the Luck, and Money as a let Variable because money data will be edited later.
-    let luck = data.luck;
-    if (data.luck! > 10) {
+    let luck = Math.floor(data.luck! / 10);
+    if (luck < 0) {
+      luck = 1;
+    }
+    if (luck > 10) {
       luck = 10;
     }
     //Make Embed for DailyShop.
