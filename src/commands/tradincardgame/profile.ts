@@ -34,7 +34,7 @@ createCommand({
       .setColor("random")
       .setTitle(`Stats:`)
       .setDescription(
-        `Here, You can view the current stats of ${member.mention} \n**Money:** ${stats.money} \n**Health:** ${stats.health} \n**Defense:** ${stats.defense} \n**Attack Damage:** ${stats.basicattack} \n**Ability Power:** ${stats.abilitypower} \n **Speed:** ${stats.speed} \n**Luck:** ${stats.luck} \n**Chance:** ${stats.chance} \n **Critical Chance:** ${stats.critchance} \n **Critical Damage Multiplier:** ${stats.critdmgmultiplier} \n **XP amount:** ${level.xp} \n **Level:** ${level.level} \n **Stat points:** ${stats.statpoints} \n **Total points:** ${stats.totalpoints}`
+        `Here, You can view the current stats of ${member.mention} \n**Money:** ${stats.money} \n**Health:** ${stats.health} \n**Defense:** ${stats.defense} \n**Attack Damage:** ${stats.basicattack} \n**Ability Power:** ${stats.abilitypower} \n **Speed:** ${stats.speed} \n**Merchant Level:** ${stats.luck} \n**Chance:** ${stats.chance} \n **Critical Chance:** ${stats.critchance} \n **Critical Damage Multiplier:** ${stats.critdmgmultiplier} \n **XP amount:** ${level.xp} \n **Level:** ${level.level} \n **Stat points:** ${stats.statpoints} \n **Total points:** ${stats.totalpoints}`
       )
       .setTimestamp();
     message.reply({ embeds: [statembed] });
