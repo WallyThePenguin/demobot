@@ -116,26 +116,40 @@ export interface enemyuserschema extends Record<string, unknown> {
   type: "attack" | "tank" | "speed" | "magic";
   description: string;
 }
-
+export interface enemyuserstats extends Record<string, unknown> {
+  health: number;
+  basicattack: number;
+  abilitypower: number;
+  speed: number;
+  defence: number;
+}
+export interface enemyEntitySchema extends Record<string, unknown> {
+  enemyTemplate: enemyuserschema;
+  level: number;
+  enemyHealth: number;
+  enemycards: Array<number>;
+  enemystats: enemyuserstats;
+}
 export interface dailyshop extends Record<string, unknown> {
   shopid: number;
   cards: Array<number>;
   luck: number;
 }
 export interface fightschema extends Record<string, unknown> {
-  userid: bigint;
+  level: number;
   userhealth: number;
   usercards: Array<number>;
+  enemyuser: enemyEntitySchema;
   enemyhealth: number;
   enemycards: Array<number>;
 }
 export interface deckschema extends Record<string, unknown> {
   userid: bigint;
-  card1: number | null;
-  card2: number | null;
-  card3: number | null;
-  card4: number | null;
-  card5: number | null;
+  card1: number | 0;
+  card2: number | 0;
+  card3: number | 0;
+  card4: number | 0;
+  card5: number | 0;
 }
 
 export interface chestinventoryschema extends Record<string, unknown> {

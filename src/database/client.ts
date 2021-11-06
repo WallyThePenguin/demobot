@@ -21,11 +21,14 @@ import {
   enemyuserschema,
   usercardinventory,
   dailyshop,
-  fightschema as _fightschema,
+  fightschema,
   deckschema,
   chestinventoryschema,
+  enemyEntitySchema,
 } from "./schemas.ts";
 import { init } from "./database.ts";
+import { bot } from "../../cache.ts";
+import { configs as conf } from "../../configs.ts";
 await init();
 
 //**Check if data exists */
@@ -488,11 +491,11 @@ export async function DeckViewEdit(
         if (deckupdate.length === 0) return { error: 1 };
         return {
           userid: userid,
-          card1: cardsget2?.[0]?.cardnumber || null,
-          card2: cardsget2?.[1]?.cardnumber || null,
-          card3: cardsget2?.[2]?.cardnumber || null,
-          card4: cardsget2?.[3]?.cardnumber || null,
-          card5: cardsget2?.[4]?.cardnumber || null,
+          card1: cardsget2?.[0]?.cardnumber || 0,
+          card2: cardsget2?.[1]?.cardnumber || 0,
+          card3: cardsget2?.[2]?.cardnumber || 0,
+          card4: cardsget2?.[3]?.cardnumber || 0,
+          card5: cardsget2?.[4]?.cardnumber || 0,
         };
       }
       case "remove": {
@@ -507,32 +510,36 @@ export async function DeckViewEdit(
         if (deckupdate.length === 0) return { error: 1 };
         return {
           userid: userid,
-          card1: cardsget2?.[0]?.cardnumber || null,
-          card2: cardsget2?.[1]?.cardnumber || null,
-          card3: cardsget2?.[2]?.cardnumber || null,
-          card4: cardsget2?.[3]?.cardnumber || null,
-          card5: cardsget2?.[4]?.cardnumber || null,
+          card1: cardsget2?.[0]?.cardnumber || 0,
+          card2: cardsget2?.[1]?.cardnumber || 0,
+          card3: cardsget2?.[2]?.cardnumber || 0,
+          card4: cardsget2?.[3]?.cardnumber || 0,
+          card5: cardsget2?.[4]?.cardnumber || 0,
         };
       }
       case "view":
         return {
           userid: userid,
-          card1: cardsget?.[0]?.cardnumber || null,
-          card2: cardsget?.[1]?.cardnumber || null,
-          card3: cardsget?.[2]?.cardnumber || null,
-          card4: cardsget?.[3]?.cardnumber || null,
-          card5: cardsget?.[4]?.cardnumber || null,
+          card1: cardsget?.[0]?.cardnumber || 0,
+          card2: cardsget?.[1]?.cardnumber || 0,
+          card3: cardsget?.[2]?.cardnumber || 0,
+          card4: cardsget?.[3]?.cardnumber || 0,
+          card5: cardsget?.[4]?.cardnumber || 0,
         };
     }
   } else
     return {
       userid: userid,
-      card1: cardsget?.[0]?.cardnumber || null,
-      card2: cardsget?.[1]?.cardnumber || null,
-      card3: cardsget?.[2]?.cardnumber || null,
-      card4: cardsget?.[3]?.cardnumber || null,
-      card5: cardsget?.[4]?.cardnumber || null,
+      card1: cardsget?.[0]?.cardnumber || 0,
+      card2: cardsget?.[1]?.cardnumber || 0,
+      card3: cardsget?.[2]?.cardnumber || 0,
+      card4: cardsget?.[3]?.cardnumber || 0,
+      card5: cardsget?.[4]?.cardnumber || 0,
     };
+}
+//deno-lint-ignore no-unused-vars
+function isErr(obj: deckschema | deckediterror): obj is deckediterror {
+  return Reflect.has(obj, "error");
 }
 //Chest Based-Functions Here.
 //VVVVVVVVVVVVVVVVVVVVVVVVVV
@@ -566,9 +573,9 @@ export async function chestdrop(chestid: number, userid: bigint): Promise<userca
     const max = getChest.chestlevel + 2;
     const bias = getChest.chestlevel;
     const influence = 1;
-    const rnd = Math.round(Math.random()) * (max - min) + min;
-    const mix = Math.round(Math.random()) * influence;
-    const rarity = rnd * (1 - mix) + bias * mix;
+    const rnd = Math.random() * (max - min) + min;
+    const mix = Math.random() * influence;
+    const rarity = Math.floor(rnd * (1 - mix) + bias * mix);
     console.log("THE RARITY IS..." + rarity);
     const randomizedCard = await randomcardsget(rarity, 1);
     console.log(randomizedCard, rarity);
@@ -591,9 +598,9 @@ export async function chestdrop(chestid: number, userid: bigint): Promise<userca
     const max = 10;
     const bias = 7;
     const influence = 1;
-    const rnd = Math.round(Math.random()) * (max - min) + min;
-    const mix = Math.round(Math.random()) * influence;
-    const rarity = rnd * (1 - mix) + bias * mix;
+    const rnd = Math.random() * (max - min) + min;
+    const mix = Math.random() * influence;
+    const rarity = Math.floor(rnd * (1 - mix) + bias * mix);
     const randomizedCard = await randomcardsget(rarity, 1);
     console.log(randomizedCard, rarity);
     //Delete the Chest.
@@ -631,15 +638,18 @@ export async function campaigndrop(
   userid: bigint,
   array: Array<string>
 ): Promise<chestinventoryschema | usercardinventory> {
+  //Randomization Part.
   const min = 1;
   const max = array.length;
   const bias = 1;
   const influence = 1;
-  const rnd = Math.round(Math.random()) * (max - min) + min;
-  const mix = Math.round(Math.random()) * influence;
-  const item = rnd * (1 - mix) + bias * mix;
+  const rnd = Math.random() * (max - min) + min;
+  const mix = Math.random() * influence;
+  const item = Math.floor(rnd * (1 - mix) + bias * mix);
+  //Outcome of Item: Then Split the type of award from ID.
   const arrayItem = array[item].split(`-`)[0];
   const arrayItemId = Number(array[item].split(`-`)[1]);
+  //Figure out What type of award it is then give it to the user.
   if (arrayItem === "chest") {
     const chestgiven = await givechest(userid, arrayItemId);
     return {
@@ -656,5 +666,136 @@ export async function campaigndrop(
       level: cardgiven.level,
       isindeck: cardgiven.isindeck,
     };
+  }
+}
+//Fighting Stuff Here
+//VVVVVVVVVVVVVVVVVVVV
+export async function biasedcardsget(
+  level = 1,
+  rarity = 1,
+  numberOfCards: number,
+  type: "tank" | "magic" | "speed" | "attack"
+): Promise<number[]> {
+  const cards = await sql<
+    globalcardlist[]
+  >`SELECT "id" FROM globalcardlist WHERE rarity=${rarity} and level=${level} and type=${type} ORDER BY RANDOM() LIMIT ${numberOfCards}`;
+  console.log(cards);
+  return cards.map((c) => c.id!);
+}
+export async function randomEnemy(level = 1): Promise<enemyEntitySchema> {
+  //Get Enemy Template.
+  const [enemyTemplate] = await sql<enemyuserschema[]>`SELECT "id" FROM enemyuserschema ORDER BY RANDOM() LIMIT 1`;
+  console.log(enemyTemplate);
+  const enemycards = await biasedcardsget(level, 1, 5, enemyTemplate.type);
+  //Just Let every stat to make it easier and efficient for me.
+  const special = (3 * 1.9 * (2 * level)) / 3;
+  const nonspecial = (3 * 1.6 * (2 * level)) / 3;
+  let health = conf.defaultstats.health;
+  let basicattack = conf.defaultstats.basicattack;
+  let abilitypower = conf.defaultstats.abilitypower;
+  let speed = conf.defaultstats.speed;
+  let defence = conf.defaultstats.defence;
+  if (level < 20) {
+    health = 50;
+  } else {
+    if (enemyTemplate.type == "tank") {
+      health = special;
+    } else health = nonspecial;
+  }
+  switch (enemyTemplate.type) {
+    case "tank":
+      basicattack = nonspecial;
+      abilitypower = 0;
+      speed = nonspecial;
+      defence = special;
+      break;
+    case "attack":
+      basicattack = special;
+      abilitypower = 0;
+      speed = nonspecial;
+      defence = nonspecial;
+      break;
+    case "speed":
+      basicattack = special;
+      abilitypower = 0;
+      speed = special;
+      defence = 0;
+      break;
+    case "magic":
+      basicattack = 0;
+      abilitypower = nonspecial;
+      speed = nonspecial;
+      defence = 0;
+      break;
+  }
+  return {
+    enemyTemplate: enemyTemplate,
+    level: level,
+    enemyHealth: health,
+    enemystats: {
+      health: health,
+      basicattack: basicattack,
+      abilitypower: abilitypower,
+      speed: speed,
+      defence: defence,
+    },
+    enemycards: enemycards,
+  };
+}
+//Auto-Scaling Random Enemy Based off Dungeon Level needed for FightCache.
+//Auto-Import User Health Stat for FightCache.
+export async function initiateDungeon(userid: bigint, newSession = true): Promise<fightschema | undefined | void> {
+  //IF the session is continuing to a new level, set newSession to False,
+  if (newSession === false) {
+    const oldSession = bot.fightCache.get(userid);
+    const newEnemy = await randomEnemy(oldSession!.level + 1);
+    //Create a New Enemy Based on the new level
+    bot.fightCache.set(userid, {
+      level: oldSession!.level + 1,
+      userhealth: oldSession!.userhealth,
+      usercards: oldSession!.usercards,
+      enemyuser: newEnemy,
+      enemyhealth: newEnemy.enemyHealth,
+      enemycards: newEnemy.enemycards,
+    });
+    return {
+      level: oldSession!.level + 1,
+      userhealth: oldSession!.userhealth,
+      usercards: oldSession!.usercards,
+      enemyuser: newEnemy,
+      enemyhealth: newEnemy.enemyHealth,
+      enemycards: newEnemy.enemycards,
+    }; //SetValuesHere
+  } else {
+    //If it is a new session, make one.
+    //Create the enemy for the session with the level 1 stat.
+    const newEnemy = await randomEnemy(1);
+    //View the User Deck to grab the userdeck Promise.
+    const deckView = await DeckViewEdit(userid, "view");
+    //If the DeckView throws an error, return.
+    if ("error" in deckView) return console.log("error in DeckView:" + deckView.error);
+    //Make the array in the order of the cards.
+    const cardArray = [deckView.card1, deckView.card2, deckView.card3, deckView.card4, deckView.card5];
+    //Use statdata function to get the health stat of the user.
+    const userhealthstat = await statdata(userid);
+    //if the healthstat doesn't "exist" return.
+    if (!userhealthstat.health) return;
+    //Make a set with the stats gathered and enemy created.
+    bot.fightCache.set(userid, {
+      level: 1,
+      usercards: cardArray,
+      userhealth: userhealthstat?.health,
+      enemyuser: newEnemy,
+      enemyhealth: newEnemy.enemyHealth,
+      enemycards: newEnemy.enemycards,
+    });
+    return {
+      level: 1,
+      usercards: cardArray,
+      userhealth: userhealthstat?.health,
+      enemyuser: newEnemy,
+      enemyhealth: newEnemy.enemyHealth,
+      enemycards: newEnemy.enemycards,
+    }; //SetValuesHere
   }
 }
