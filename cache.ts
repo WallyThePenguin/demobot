@@ -6,6 +6,7 @@ import { CustomEvents } from "./src/types/events.ts";
 import { Monitor } from "./src/types/monitors.ts";
 import { Task } from "./src/types/tasks.ts";
 import { interactionListener } from "./src/types/listeners/interactionListener.ts";
+import { fightschema } from "./src/database/schemas.ts";
 export const bot = {
   fullyReady: false,
   activeGuildIDs: new Set<bigint>(),
@@ -52,4 +53,5 @@ export const bot = {
       ws.sendShardMessage(shardId, payload);
     },
   }),
+  fightCache: new Map<bigint, fightschema>(),
 };
