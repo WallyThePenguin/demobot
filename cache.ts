@@ -54,4 +54,5 @@ export const bot = {
     },
   }),
   fightCache: new Map<bigint, fightschema>(),
+  unfinishedFightsCache: new Map<bigint, fightschema>(),
 };
