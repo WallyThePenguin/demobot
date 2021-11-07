@@ -137,6 +137,7 @@ export interface dailyshop extends Record<string, unknown> {
 }
 export interface fightschema extends Record<string, unknown> {
   level: number;
+  userstats: enemyuserstats;
   userhealth: number;
   usercards: Array<number>;
   enemyuser: enemyEntitySchema;
