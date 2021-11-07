@@ -686,7 +686,7 @@ export async function randomEnemy(level = 1): Promise<enemyEntitySchema> {
   //Get Enemy Template.
   const [enemyTemplate] = await sql<enemyuserschema[]>`SELECT "id" FROM enemyuserschema ORDER BY RANDOM() LIMIT 1`;
   console.log(enemyTemplate);
-  const enemycards = await biasedcardsget(level, 1, 5, enemyTemplate.type);
+  const enemycards = await biasedcardsget(1, 1, 5, enemyTemplate.type);
   //Just Let every stat to make it easier and efficient for me.
   const special = (3 * 1.9 * (2 * level)) / 3;
   const nonspecial = (3 * 1.6 * (2 * level)) / 3;
@@ -754,6 +754,7 @@ export async function initiateDungeon(userid: bigint, newSession = true): Promis
       level: oldSession!.level + 1,
       userhealth: oldSession!.userhealth,
       usercards: oldSession!.usercards,
+      userstats: oldSession!.userstats,
       enemyuser: newEnemy,
       enemyhealth: newEnemy.enemyHealth,
       enemycards: newEnemy.enemycards,
@@ -762,6 +763,7 @@ export async function initiateDungeon(userid: bigint, newSession = true): Promis
       level: oldSession!.level + 1,
       userhealth: oldSession!.userhealth,
       usercards: oldSession!.usercards,
+      userstats: oldSession!.userstats,
       enemyuser: newEnemy,
       enemyhealth: newEnemy.enemyHealth,
       enemycards: newEnemy.enemycards,
@@ -778,6 +780,13 @@ export async function initiateDungeon(userid: bigint, newSession = true): Promis
     const cardArray = [deckView.card1, deckView.card2, deckView.card3, deckView.card4, deckView.card5];
     //Use statdata function to get the health stat of the user.
     const userhealthstat = await statdata(userid);
+    const userstats = {
+      health: userhealthstat.health!,
+      basicattack: userhealthstat.basicattack!,
+      abilitypower: userhealthstat.abilitypower!,
+      speed: userhealthstat.speed!,
+      defence: userhealthstat.defense!,
+    };
     //if the healthstat doesn't "exist" return.
     if (!userhealthstat.health) return;
     //Make a set with the stats gathered and enemy created.
@@ -785,6 +794,7 @@ export async function initiateDungeon(userid: bigint, newSession = true): Promis
       level: 1,
       usercards: cardArray,
       userhealth: userhealthstat?.health,
+      userstats: userstats,
       enemyuser: newEnemy,
       enemyhealth: newEnemy.enemyHealth,
       enemycards: newEnemy.enemycards,
@@ -793,9 +803,14 @@ export async function initiateDungeon(userid: bigint, newSession = true): Promis
       level: 1,
       usercards: cardArray,
       userhealth: userhealthstat?.health,
+      userstats: userstats,
       enemyuser: newEnemy,
       enemyhealth: newEnemy.enemyHealth,
       enemycards: newEnemy.enemycards,
     }; //SetValuesHere
   }
+}
+export function randomCardFromDeck(deck: Array<number>): number {
+  const randomCard = deck[~~(deck.length * Math.random())];
+  return randomCard;
 }
