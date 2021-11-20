@@ -31,7 +31,7 @@ createCommand({
     async function dailyshopembed(): Promise<Embed> {
       const dailyshopget = await sql<
         (dailyshop & globalcardlist)[]
-      >`SELECT * FROM "dailyshop" INNER JOIN "globalcardlist" ON "globalcardlist"."id"=any("dailyshop"."cards") WHERE luck=${!luck}`;
+      >`SELECT * FROM "dailyshop" INNER JOIN "globalcardlist" ON "globalcardlist"."id"=any("dailyshop"."cards") WHERE luck=${luck}`;
       const embed = new Embed().setTitle(`Daily Shop:`).setFooter(`CardGame.`);
       //deno-lint-ignore no-unused-vars
       dailyshopget.forEach((card) => {
@@ -55,7 +55,7 @@ createCommand({
     async function dailyshopbuttons(): Promise<Components> {
       const dailyshopget = await sql<
         (dailyshop & globalcardlist)[]
-      >`SELECT * FROM "dailyshop" INNER JOIN "globalcardlist" ON "globalcardlist"."id"=any("dailyshop"."cards") WHERE luck=${!luck}`;
+      >`SELECT * FROM "dailyshop" INNER JOIN "globalcardlist" ON "globalcardlist"."id"=any("dailyshop"."cards") WHERE luck=${luck}`;
       const buttons = new Components();
       dailyshopget.forEach((card) => {
         buttons.addButton(`${card.name}`, "Success", `${card.name}#${card.id}`, {

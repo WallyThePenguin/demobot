@@ -25,10 +25,22 @@ import {
   deckschema,
   chestinventoryschema,
   enemyEntitySchema,
+  enemyuserstats,
 } from "./schemas.ts";
 import { init } from "./database.ts";
 import { bot } from "../../cache.ts";
 import { configs as conf } from "../../configs.ts";
+import {
+  DiscordenoMessage,
+  DiscordenoMember,
+  sendInteractionResponse,
+  snowflakeToBigint,
+  DiscordInteractionResponseTypes,
+  editSlashResponse,
+} from "../../deps.ts";
+import { Embed } from "../utils/Embed.ts";
+import { Components } from "../utils/components.ts";
+import { needButton } from "../utils/collectors.ts";
 await init();
 
 //**Check if data exists */
@@ -98,9 +110,11 @@ export async function xpchange(user: bigint, xp: number, give = true): Promise<x
   //**Checklevel Before being affected */
   const oldamount = await checklevel(user);
   //**Update the xp value to either take or gain xp */
-  await sql<GameUserSchema[]>`UPDATE "GameUserSchema" SET "xp" = "xp" ${
-    give ? "+" : "-"
-  } ${xp} WHERE id = ${user.toString()}`;
+  if (give === true) {
+    await sql<GameUserSchema[]>`UPDATE "GameUserSchema" SET "xp"="xp"+${xp} WHERE id = ${user.toString()}`;
+  } else {
+    await sql<GameUserSchema[]>`UPDATE "GameUserSchema" SET "xp"="xp"-${xp} WHERE id = ${user.toString()}`;
+  }
   //**Check level after being affected */
   const newamount = await checklevel(user);
   //**Log the xp change for now. */
@@ -112,10 +126,17 @@ export async function xpchange(user: bigint, xp: number, give = true): Promise<x
   //**IF they did, whats the difference */
   const difference = Math.abs(newamount.level - oldamount.level);
   //**If the check is true, they gain or get removed statpoints. */
-  if (check === true)
-    sql<GameUserSchema[]>`UPDATE "GameUserSchema" SET "statpoints" = "statpoints" ${
-      give ? "+" : "-"
-    } ${difference}, "totalpoints" = "totalpoints" ${give ? "+" : "-"} ${difference} WHERE id = ${user.toString()}`;
+  if (check === true) {
+    if (give === true) {
+      await sql<
+        GameUserSchema[]
+      >`UPDATE "GameUserSchema" SET "statpoints" = "statpoints"+${difference}, "totalpoints" = "totalpoints"+${difference} WHERE id = ${user.toString()}`;
+    } else {
+      await sql<
+        GameUserSchema[]
+      >`UPDATE "GameUserSchema" SET "statpoints" = "statpoints"-${difference}, "totalpoints" = "totalpoints"-${difference} WHERE id = ${user.toString()}`;
+    }
+  }
   return { xp: newamount.xp, level: newamount.level, levelup: check };
 }
 
@@ -476,7 +497,6 @@ export async function DeckViewEdit(
   const cardsget = await sql<
     usercardinventory[]
   >`SELECT * FROM usercardinventory WHERE userid=${userid.toString()} and isindeck=true`;
-  console.log(cardsget);
   if (type !== undefined && cardnumber !== undefined) {
     switch (type) {
       case "add": {
@@ -679,17 +699,16 @@ export async function biasedcardsget(
   const cards = await sql<
     globalcardlist[]
   >`SELECT "id" FROM globalcardlist WHERE rarity=${rarity} and level=${level} and type=${type} ORDER BY RANDOM() LIMIT ${numberOfCards}`;
-  console.log(cards);
   return cards.map((c) => c.id!);
 }
 export async function randomEnemy(level = 1): Promise<enemyEntitySchema> {
   //Get Enemy Template.
-  const [enemyTemplate] = await sql<enemyuserschema[]>`SELECT "id" FROM enemyuserschema ORDER BY RANDOM() LIMIT 1`;
+  const [enemyTemplate] = await sql<enemyuserschema[]>`SELECT * FROM enemyuserschema ORDER BY RANDOM() LIMIT 1`;
   console.log(enemyTemplate);
   const enemycards = await biasedcardsget(1, 1, 5, enemyTemplate.type);
   //Just Let every stat to make it easier and efficient for me.
-  const special = (3 * 1.9 * (2 * level)) / 3;
-  const nonspecial = (3 * 1.6 * (2 * level)) / 3;
+  const special = Math.floor((3 * 1.9 * (2 * level)) / 3);
+  const nonspecial = Math.floor((3 * 1.6 * (2 * level)) / 3);
   let health = conf.defaultstats.health;
   let basicattack = conf.defaultstats.basicattack;
   let abilitypower = conf.defaultstats.abilitypower;
@@ -813,4 +832,553 @@ export async function initiateDungeon(userid: bigint, newSession = true): Promis
 export function randomCardFromDeck(deck: Array<number>): number {
   const randomCard = deck[~~(deck.length * Math.random())];
   return randomCard;
+}
+interface fightCardStats extends Record<string, unknown> {
+  attack: number;
+  defence: number;
+  speed: number;
+  ability: number;
+}
+export function COMBINESTATSWITHCARD(entity: enemyuserstats, cardData: globalcardlist): fightCardStats {
+  const attack = entity.basicattack + cardData.attack;
+  const defence = entity.defence + cardData.defence;
+  const speed = entity.speed + cardData.speed;
+  const ability = entity.abilitypower + cardData.magic;
+  return { attack: attack, defence: defence, speed: speed, ability: ability };
+}
+export async function createNewSession(
+  //Users Object.
+  UserObject: DiscordenoMember,
+  //Message of the User.
+  message: DiscordenoMessage,
+  //Starting Embed.
+  StartingEmbed: Embed,
+  //IF the user has an unfinished Session, send this.
+  OldSessionDisplay: {
+    unfinishedFightEmbed: Embed;
+    unfinishedEmbedButtons: Components;
+  },
+  //Fighting Embed, Has to be a Function since fight stats will always change.
+  FightDisplay: {
+    FlexibleFightEmbed: (
+      userhealth: number,
+      enemyhealth: number,
+      user: enemyuserstats,
+      enemy: enemyEntitySchema,
+      start: boolean,
+      lastusercardused?: string,
+      lastenemycardused?: string
+    ) => Embed;
+    autoCardButtons: (cards: Array<number>) => Promise<Components>;
+  },
+  //If User Wins, Send this.
+  WinnerDisplay: {
+    YouWonEmbed: (level: number, enemy: enemyEntitySchema, chestlevel: number) => Embed;
+    WinnerButtons: Components;
+  },
+  LoserDisplay: {
+    YouLostEmbed: (level: number, enemy: enemyEntitySchema) => Embed;
+    LoserButton: Components;
+  },
+  GoingUp = false
+): Promise<void | undefined | DiscordenoMessage> {
+  //If they're in the system, good, lets send them the "Loading" message, this will also be the main message we will always edit.
+  const MAINMESSAGE = await message.reply({ embeds: [StartingEmbed] });
+  //IF GOING UP A DUNGEON LEVEL, BYPASS ALL CHECKING, AND MAKE A SESSION:
+  if (GoingUp === true) {
+    let fightschema = await initiateDungeon(UserObject.id, false);
+    //Now that we created or got the session, first we should get all fightschema values into seperate constants/let variables.
+    //User Values:
+    let userhealth = fightschema!.userstats.health; //This Value will Change
+    let lastcardused = "not defined yet"; //This Value will Change
+    const userstats = fightschema!.userstats; //These stats will neverchange.
+    //Enemy Values:
+    let enemyhealth = fightschema!.enemyuser.enemystats.health; //This Value will change
+    let lastcardenemyused = "not defined yet"; //This Value will change
+    const enemyEntitySchema = fightschema!.enemyuser; //These stats will never change.
+    const enemystats = fightschema!.enemyuser.enemystats; //These stats will never change.
+
+    //Now we stated the values we needed before the loop, we can now just edit embed to fightembed + buttons.
+    await MAINMESSAGE.edit({
+      embeds: [FightDisplay.FlexibleFightEmbed(userhealth, enemyhealth, userstats, enemyEntitySchema, true)],
+      components: await FightDisplay.autoCardButtons(fightschema!.usercards),
+    });
+
+    //Start Fight loop.
+    //We need default timeout value to be false.
+    let timeout = false;
+    //We need the bot to know the game is finished or not.
+    let gamefinished = false;
+    //By default the winner is the user.
+    let winner = "user";
+    //Move barely plays a part but is needed for timeout.
+    let move = 0;
+
+    //HEART OF THE MECHANICS HERE
+
+    //VVVVVVVVVVVVVVVVVVVVVVVVVVV
+
+    while (userhealth > 0 && enemyhealth > 0) {
+      //The loop does not go on until the button is pressed.
+      const buttonPress = await needButton(UserObject.id, MAINMESSAGE.id).catch(() => undefined);
+      if (!buttonPress) {
+        timeout = true;
+        break;
+      } else {
+        move = move + 1;
+        console.log(move);
+        //Find what card the user selected
+        const [usercard] = await sql<
+          (usercardinventory & globalcardlist)[]
+        >`SELECT * FROM "usercardinventory" INNER JOIN "globalcardlist" ON "globalcardlist"."id"="usercardinventory"."id" WHERE cardnumber = ${Number(
+          buttonPress.customId
+        )}`;
+        //State the name and level for the embed.
+        lastcardused = `${usercard.name} LVL: ${usercard.level}`;
+        //Get a random card from the enemy,
+        let enemycardselected = randomCardFromDeck(enemyEntitySchema.enemycards);
+        let enemycard = await searchcard(enemycardselected);
+        //State the name and level for the embed.
+        lastcardenemyused = `${enemycard.name}, LVL: ${enemycard.level}`;
+        //Now We combine the stats and do the fight.
+        let combineStatsUser = COMBINESTATSWITHCARD(userstats, usercard);
+        let combineStatsEnemy = COMBINESTATSWITHCARD(enemyEntitySchema.enemystats, enemycard);
+
+        //VVVV FIGHT STARTS VVVVVV
+
+        //IF THE USER IS FASTER THAN THE ENEMY, LET THE USER HIT THE ENEMY FIRST.
+        if (combineStatsUser.speed > combineStatsEnemy.speed) {
+          enemyhealth =
+            enemyhealth -
+            (combineStatsUser.attack - combineStatsEnemy.defence) -
+            (combineStatsUser.ability - combineStatsEnemy.defence / 2);
+          if (!(enemyhealth > 0)) {
+            gamefinished = true;
+            winner = "user";
+            break;
+          }
+          userhealth =
+            userhealth -
+            (combineStatsEnemy.attack - combineStatsUser.defence) -
+            (combineStatsEnemy.ability - combineStatsUser.defence / 2);
+          if (!(userhealth > 0)) {
+            gamefinished = true;
+            winner = "enemy";
+            break;
+          }
+          await editSlashResponse(buttonPress.interaction.token, {
+            embeds: [
+              FightDisplay.FlexibleFightEmbed(
+                userhealth,
+                enemyhealth,
+                userstats,
+                enemyEntitySchema,
+                false,
+                lastcardused,
+                lastcardenemyused
+              ),
+            ],
+          });
+          continue;
+        } else {
+          userhealth =
+            userhealth -
+            (combineStatsEnemy.attack - combineStatsUser.defence) -
+            (combineStatsEnemy.ability - combineStatsUser.defence / 2);
+          if (!(userhealth > 0)) {
+            gamefinished = true;
+            winner = "enemy";
+            break;
+          }
+          enemyhealth =
+            enemyhealth -
+            (combineStatsUser.attack - combineStatsEnemy.defence) -
+            (combineStatsUser.ability - combineStatsEnemy.defence / 2);
+          if (!(enemyhealth > 0)) {
+            gamefinished = true;
+            winner = "user";
+            break;
+          }
+          fightschema!.userhealth = userhealth;
+          fightschema!.enemyhealth = enemyhealth;
+          await editSlashResponse(buttonPress.interaction.token, {
+            embeds: [
+              FightDisplay.FlexibleFightEmbed(
+                userhealth,
+                enemyhealth,
+                userstats,
+                enemyEntitySchema,
+                false,
+                lastcardused,
+                lastcardenemyused
+              ),
+            ],
+          });
+          continue;
+        }
+      }
+    }
+
+    //Ending Of Function Here.
+
+    //VVVVVVVVVVVVVVVVVVVVVVVV
+
+    if (timeout === true) {
+      //timeout Reaction here.
+      //If move is 0, the game did not start, else cache it.
+      if (move > 0 || GoingUp === true) {
+        const test = bot.unfinishedFightsCache.set(UserObject.id, fightschema!);
+        console.log(`Cached?:`, test);
+        await MAINMESSAGE.edit({
+          embeds: [],
+          content: `${UserObject.mention}, We saw that you timed out, so we cached your dungeon session, to continue playing, use the dungeon command again!`,
+        });
+      } else {
+        await MAINMESSAGE.edit({
+          embeds: [],
+          content: `${UserObject.mention}, We saw that you timed out, but you did not make a move, create a new session by using the dungeon command again!`,
+        });
+        return;
+      }
+    }
+    //The Session/Level finished, here is where we react and finish the function.
+    if (gamefinished === true) {
+      if (winner === "user") {
+        //Winner Reaction here.
+        const chestlevel = Math.floor(fightschema!.level * 0.05);
+        await MAINMESSAGE.edit({
+          embeds: [WinnerDisplay.YouWonEmbed(fightschema!.level, enemyEntitySchema, chestlevel)],
+          components: WinnerDisplay.WinnerButtons,
+        });
+        const continuesessionbutton = await needButton(UserObject.id, MAINMESSAGE.id).catch(() => undefined);
+        if (!continuesessionbutton || continuesessionbutton.customId === "end") {
+          //End Session, Give awards and delete components. return;
+          await givechest(UserObject.id, chestlevel);
+          await xpchange(UserObject.id, fightschema!.level * 20);
+          await sql`UPDATE "GameUserSchema" SET "money"="money"+${
+            fightschema!.level * 10
+          } WHERE id = ${UserObject.id.toString()}`;
+          return;
+        } else {
+          if (continuesessionbutton.customId === `continue`) {
+            await createNewSession(
+              UserObject,
+              message,
+              StartingEmbed,
+              OldSessionDisplay,
+              FightDisplay,
+              WinnerDisplay,
+              LoserDisplay,
+              true
+            );
+            return;
+          } else {
+            bot.unfinishedFightsCache.set(UserObject.id, fightschema!);
+          }
+          return;
+        }
+      } else {
+        //Loser Reaction here.
+        //User only gets half rewards, reward it from now.
+        await xpchange(UserObject.id, fightschema!.level * 10, true);
+        await sql`UPDATE "GameUserSchema" SET "money"="money"+${
+          fightschema!.level * 5
+        } WHERE id= ${UserObject.id.toString()}`;
+        await MAINMESSAGE.edit({
+          embeds: [LoserDisplay.YouLostEmbed(fightschema!.level, enemyEntitySchema)],
+          components: LoserDisplay.LoserButton,
+        });
+        const newsessionbutton = await needButton(UserObject.id, MAINMESSAGE.id).catch(() => undefined);
+        if (newsessionbutton!.customId === "new") {
+          await createNewSession(
+            UserObject,
+            message,
+            StartingEmbed,
+            OldSessionDisplay,
+            FightDisplay,
+            WinnerDisplay,
+            LoserDisplay
+          );
+          return;
+        } else {
+          return;
+        }
+      }
+    }
+  }
+  //Check If their DATA exists in the system, or else the bot crashes when running the database functions.
+  const datacheck = await gamedatacheck(UserObject.id);
+  if (!datacheck)
+    return await MAINMESSAGE.edit(`Hey, seems like you're new, to get started, use the !tradingstart command!`);
+
+  //As a DEFAULT:
+  //We're Always creating a new Session.
+  let newSession = true;
+  let fightschema = {} as fightschema;
+  let sessionlevel = 1;
+
+  //Now, Lets Check If the user has an old Session.
+  if (bot.unfinishedFightsCache.has(UserObject.id)) {
+    //IF they do have an old session, lets prompt the user and ask them if they want to continue from where they left off.
+    //First We Edit the MAINMESSAGE of the function.
+    await MAINMESSAGE.edit({
+      embeds: [OldSessionDisplay.unfinishedFightEmbed],
+      components: OldSessionDisplay.unfinishedEmbedButtons,
+    });
+    //Now We get the needButton.
+    const prompt = await needButton(UserObject.id, MAINMESSAGE.id).catch(() => undefined);
+    if (prompt!.customId) {
+      //if Button Pressed is "yes", just say it is no longer a newsession.
+      if (prompt!.customId == "yes") {
+        newSession = false;
+      } else {
+        //IF Button Pressed is "no", then keep saying its a newsession, but also delete oldsession cache.
+        bot.unfinishedFightsCache.delete(UserObject.id);
+        newSession = true;
+      }
+    } else {
+      //If no Button is Pressed:
+      await MAINMESSAGE.edit(`Game Session Timed Out.`);
+      return;
+    }
+  }
+  //Now We're done doing the "Checks" lets start creating the sessionSchema.
+
+  //If it is a NewSession we are creating, use initiateDungeon Function
+  if (newSession) {
+    //Initiate Dungeon
+    const dungeon = await initiateDungeon(UserObject.id, true);
+    if (!dungeon) {
+      return console.log(`FUCKED SESSION:` + UserObject);
+    }
+    //Then we use let to abuse global dumb stuff.
+    fightschema = dungeon;
+  } else {
+    //IF IT ISNT A NEW SESSION, get Fightschema from oldSession:
+    const dungeon = bot.unfinishedFightsCache.get(UserObject.id);
+    if (!dungeon) {
+      return console.log(`FUCKED SESSION:` + UserObject);
+    }
+    //Then we use let to abuse global dumb stuff.
+    fightschema = dungeon;
+  }
+
+  //Now that we created or got the session, first we should get all fightschema values into seperate constants/let variables.
+  //User Values:
+  let userhealth = fightschema!.userstats.health; //This Value will Change
+  let lastcardused = "not defined yet"; //This Value will Change
+  const userstats = fightschema!.userstats; //These stats will neverchange.
+  //Enemy Values:
+  let enemyhealth = fightschema!.enemyuser.enemystats.health; //This Value will change
+  let lastcardenemyused = "not defined yet"; //This Value will change
+  const enemyEntitySchema = fightschema!.enemyuser; //These stats will never change.
+  const enemystats = fightschema!.enemyuser.enemystats; //These stats will never change.
+
+  //Now we stated the values we needed before the loop, we can now just edit embed to fightembed + buttons.
+  await MAINMESSAGE.edit({
+    embeds: [FightDisplay.FlexibleFightEmbed(userhealth, enemyhealth, userstats, enemyEntitySchema, true)],
+    components: await FightDisplay.autoCardButtons(fightschema!.usercards),
+  });
+
+  //Start Fight loop.
+  //We need default timeout value to be false.
+  let timeout = false;
+  //We need the bot to know the game is finished or not.
+  let gamefinished = false;
+  //By default the winner is the user.
+  let winner = "user";
+  //Move barely plays a part but is needed for timeout.
+  let move = 0;
+
+  //HEART OF THE MECHANICS HERE
+
+  //VVVVVVVVVVVVVVVVVVVVVVVVVVV
+
+  while (userhealth > 0 && enemyhealth > 0) {
+    //The loop does not go on until the button is pressed.
+    const buttonPress = await needButton(UserObject.id, MAINMESSAGE.id).catch(() => undefined);
+    if (!buttonPress) {
+      timeout = true;
+      break;
+    } else {
+      move = move + 1;
+      console.log(move);
+      //Find what card the user selected
+      const [usercard] = await sql<
+        (usercardinventory & globalcardlist)[]
+      >`SELECT * FROM "usercardinventory" INNER JOIN "globalcardlist" ON "globalcardlist"."id"="usercardinventory"."id" WHERE cardnumber = ${Number(
+        buttonPress.customId
+      )}`;
+      //State the name and level for the embed.
+      lastcardused = `${usercard.name} LVL: ${usercard.level}`;
+      //Get a random card from the enemy,
+      let enemycardselected = randomCardFromDeck(enemyEntitySchema.enemycards);
+      let enemycard = await searchcard(enemycardselected);
+      //State the name and level for the embed.
+      lastcardenemyused = `${enemycard.name}, LVL: ${enemycard.level}`;
+      //Now We combine the stats and do the fight.
+      let combineStatsUser = COMBINESTATSWITHCARD(userstats, usercard);
+      let combineStatsEnemy = COMBINESTATSWITHCARD(enemyEntitySchema.enemystats, enemycard);
+
+      //VVVV FIGHT STARTS VVVVVV
+
+      //IF THE USER IS FASTER THAN THE ENEMY, LET THE USER HIT THE ENEMY FIRST.
+      if (combineStatsUser.speed > combineStatsEnemy.speed) {
+        enemyhealth =
+          enemyhealth -
+          (combineStatsUser.attack - combineStatsEnemy.defence) -
+          (combineStatsUser.ability - combineStatsEnemy.defence / 2);
+        if (!(enemyhealth > 0)) {
+          gamefinished = true;
+          winner = "user";
+          break;
+        }
+        userhealth =
+          userhealth -
+          (combineStatsEnemy.attack - combineStatsUser.defence) -
+          (combineStatsEnemy.ability - combineStatsUser.defence / 2);
+        if (!(userhealth > 0)) {
+          gamefinished = true;
+          winner = "enemy";
+          break;
+        }
+        await editSlashResponse(buttonPress.interaction.token, {
+          embeds: [
+            FightDisplay.FlexibleFightEmbed(
+              userhealth,
+              enemyhealth,
+              userstats,
+              enemyEntitySchema,
+              false,
+              lastcardused,
+              lastcardenemyused
+            ),
+          ],
+        });
+        continue;
+      } else {
+        userhealth =
+          userhealth -
+          (combineStatsEnemy.attack - combineStatsUser.defence) -
+          (combineStatsEnemy.ability - combineStatsUser.defence / 2);
+        if (!(userhealth > 0)) {
+          gamefinished = true;
+          winner = "enemy";
+          break;
+        }
+        enemyhealth =
+          enemyhealth -
+          (combineStatsUser.attack - combineStatsEnemy.defence) -
+          (combineStatsUser.ability - combineStatsEnemy.defence / 2);
+        if (!(enemyhealth > 0)) {
+          gamefinished = true;
+          winner = "user";
+          break;
+        }
+        fightschema.userhealth = userhealth;
+        fightschema.enemyhealth = enemyhealth;
+        await editSlashResponse(buttonPress.interaction.token, {
+          embeds: [
+            FightDisplay.FlexibleFightEmbed(
+              userhealth,
+              enemyhealth,
+              userstats,
+              enemyEntitySchema,
+              false,
+              lastcardused,
+              lastcardenemyused
+            ),
+          ],
+        });
+        continue;
+      }
+    }
+  }
+
+  //Ending Of Function Here.
+
+  //VVVVVVVVVVVVVVVVVVVVVVVV
+
+  if (timeout === true) {
+    //timeout Reaction here.
+    //If move is 0, the game did not start, else cache it.
+    if (move > 0) {
+      const test = bot.unfinishedFightsCache.set(UserObject.id, fightschema!);
+      console.log(`Cached?:`, test);
+      await MAINMESSAGE.edit({
+        embeds: [],
+        content: `${UserObject.mention}, We saw that you timed out, so we cached your dungeon session, to continue playing, use the dungeon command again!`,
+      });
+    } else {
+      await MAINMESSAGE.edit({
+        embeds: [],
+        content: `${UserObject.mention}, We saw that you timed out, but you did not make a move, create a new session by using the dungeon command again!`,
+      });
+      return;
+    }
+  }
+  //The Session/Level finished, here is where we react and finish the function.
+  if (gamefinished === true) {
+    if (winner === "user") {
+      //Winner Reaction here.
+      const chestlevel = Math.floor(fightschema!.level * 0.05);
+      await MAINMESSAGE.edit({
+        embeds: [WinnerDisplay.YouWonEmbed(fightschema!.level, enemyEntitySchema, chestlevel)],
+        components: WinnerDisplay.WinnerButtons,
+      });
+      const continuesessionbutton = await needButton(UserObject.id, MAINMESSAGE.id).catch(() => undefined);
+      if (!continuesessionbutton || continuesessionbutton.customId === "end") {
+        //End Session, Give awards and delete components. return;
+        await givechest(UserObject.id, chestlevel);
+        await xpchange(UserObject.id, fightschema!.level * 20);
+        await sql`UPDATE "GameUserSchema" SET "money"="money"+${
+          fightschema!.level * 10
+        } WHERE id = ${UserObject.id.toString()}`;
+        return;
+      } else {
+        if (continuesessionbutton.customId === `continue`) {
+          await createNewSession(
+            UserObject,
+            message,
+            StartingEmbed,
+            OldSessionDisplay,
+            FightDisplay,
+            WinnerDisplay,
+            LoserDisplay,
+            true
+          );
+          return;
+        } else {
+          bot.unfinishedFightsCache.set(UserObject.id, fightschema!);
+        }
+        return;
+      }
+    } else {
+      //Loser Reaction here.
+      //User only gets half rewards, reward it from now.
+      await xpchange(UserObject.id, fightschema!.level * 10, true);
+      await sql`UPDATE "GameUserSchema" SET "money"="money"+${
+        fightschema!.level * 5
+      } WHERE id= ${UserObject.id.toString()}`;
+      await MAINMESSAGE.edit({
+        embeds: [LoserDisplay.YouLostEmbed(fightschema!.level, enemyEntitySchema)],
+        components: LoserDisplay.LoserButton,
+      });
+      const newsessionbutton = await needButton(UserObject.id, MAINMESSAGE.id).catch(() => undefined);
+      if (newsessionbutton!.customId === "new") {
+        await createNewSession(
+          UserObject,
+          message,
+          StartingEmbed,
+          OldSessionDisplay,
+          FightDisplay,
+          WinnerDisplay,
+          LoserDisplay
+        );
+        return;
+      } else {
+        return;
+      }
+    }
+  }
 }
